@@ -1,7 +1,7 @@
 import { useNodeFrame } from '../../hooks/useNodeFrame'
 
 export function EditableShell({ children, className = '', layout = 'flow', x = 0, y = 0, width, height }) {
-  const { connectNode, hovered, isFixed, MoveIcon, selected, shellStyle, startMove, startResize } = useNodeFrame({
+  const { connectNode, hovered, id, isFixed, MoveIcon, selected, shellStyle, startMove, startResize } = useNodeFrame({
     layout,
     x,
     y,
@@ -13,9 +13,10 @@ export function EditableShell({ children, className = '', layout = 'flow', x = 0
     <div
       ref={connectNode}
       className={`${className} node-shell ${isFixed ? 'is-fixed' : ''} ${selected ? 'is-selected' : ''} ${hovered ? 'is-hovered' : ''}`}
+      data-node-id={id}
       style={shellStyle}
       onMouseDown={(event) => {
-        if (!selected || !isFixed || event.target.closest('button, input, textarea')) return
+        if (!selected || !isFixed || event.target.closest('button, input, textarea, select') || event.target.isContentEditable) return
         startMove(event)
       }}
     >

@@ -27,7 +27,7 @@ export function CanvasRoot({
   gap = 18,
   gapX,
   gapY,
-  layoutMode = 'vertical',
+  layoutMode = 'free',
   alignItems = 'stretch',
   justifyContent = 'start',
   wrap = false,
@@ -64,7 +64,8 @@ export function CanvasRoot({
   return (
     <main
       ref={(ref) => ref && connect(ref)}
-      className={`page-canvas layout-${layoutMode} ${selected ? 'is-selected' : ''}`}
+      className={`page-canvas layout-surface layout-${layoutMode} ${selected ? 'is-selected' : ''}`}
+      data-node-id="ROOT"
       style={{
         ...layoutStyle,
         width,
@@ -103,7 +104,7 @@ CanvasRoot.craft = {
     paddingLeft: 44,
     gapX: 18,
     gapY: 18,
-    layoutMode: 'vertical',
+    layoutMode: 'free',
     alignItems: 'stretch',
     justifyContent: 'start',
     wrap: false,

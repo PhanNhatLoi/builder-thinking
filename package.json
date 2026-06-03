@@ -10,6 +10,12 @@
   },
   "dependencies": {
     "@craftjs/core": "latest",
+    "@lexical/history": "^0.45.0",
+    "@lexical/react": "^0.45.0",
+    "@lexical/rich-text": "^0.45.0",
+    "@lexical/selection": "^0.45.0",
+    "@lexical/utils": "^0.45.0",
+    "lexical": "^0.45.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest"

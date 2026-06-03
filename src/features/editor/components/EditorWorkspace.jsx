@@ -1,7 +1,8 @@
 import { Element, Frame } from '@craftjs/core'
+import { useState } from 'react'
 import { CanvasRoot } from './canvas/CanvasRoot'
-import { ButtonBlock, CardBlock, ImageBlock, Section, TextBlock } from './canvas/elements'
-import { useFreeLayoutDropPosition } from '../hooks/useFreeLayoutDropPosition'
+import { CanvasCreationLayer } from './canvas/CanvasCreationLayer'
+import { ImageBlock, Section, TextBlock } from './canvas/elements'
 import { KeyboardShortcuts } from './KeyboardShortcuts'
 import { LeftSidebar } from './panels/LeftSidebar'
 import { RightToolbar } from './panels/RightToolbar'
@@ -9,7 +10,7 @@ import { BottomComponentToolbar } from './toolbars/BottomComponentToolbar'
 import { TopBar } from './toolbars/TopBar'
 
 export function EditorWorkspace() {
-  useFreeLayoutDropPosition()
+  const [activeTool, setActiveTool] = useState('pointer')
 
   return (
     <div className="workspace">
@@ -21,22 +22,11 @@ export function EditorWorkspace() {
           <div className="canvas-scale">
             <Frame>
               <Element is={CanvasRoot} canvas>
-                <TextBlock text="Build a page by dragging blocks" fontSize={42} />
-                <TextBlock
-                  text="Select any item to edit typography, colors, spacing, and order from the right side panel."
-                  fontSize={18}
-                  weight={500}
-                  color="#475569"
-                />
-                <ImageBlock height={210} />
-                <Element is={Section} canvas background="#eefbf8" padding={24} radius={20} height={230}>
-                  <CardBlock />
-                </Element>
-                <ButtonBlock />
               </Element>
             </Frame>
+            <CanvasCreationLayer activeTool={activeTool} onComplete={() => setActiveTool('pointer')} />
           </div>
-          <BottomComponentToolbar />
+          <BottomComponentToolbar activeTool={activeTool} onToolChange={setActiveTool} />
         </div>
       </section>
       <RightToolbar />

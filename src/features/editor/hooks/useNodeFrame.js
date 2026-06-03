@@ -6,20 +6,23 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
   const {
     connectors: { connect, drag },
     actions,
+    id,
     parentId,
     selected,
     hovered,
   } = useNode((node) => ({
+    id: node.id,
     parentId: node.data.parent,
     selected: node.events.selected,
     hovered: node.events.hovered,
   }))
 
-  const { parentLayoutMode } = useEditor((state) => ({
+  const { actions: editorActions, nodes, parentLayoutMode } = useEditor((state) => ({
+    nodes: state.nodes,
     parentLayoutMode: parentId ? state.nodes[parentId]?.data.props.layoutMode : null,
   }))
 
-  const isFixed = layout === 'fixed' || parentLayoutMode === 'free'
+  const isFixed = parentLayoutMode ? parentLayoutMode === 'free' : layout === 'fixed'
   const shellStyle = {
     width: width ? `${width}px` : undefined,
     height: height ? `${height}px` : undefined,
@@ -36,7 +39,7 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     event.preventDefault()
     event.stopPropagation()
 
-    const canvas = event.currentTarget.closest('.page-canvas')
+    const canvas = event.currentTarget.closest('.layout-surface')
     if (!canvas) return
 
     const canvasRect = canvas.getBoundingClientRect()
@@ -49,8 +52,12 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     const originY = y
     const nodeWidth = width || shell.offsetWidth
     const nodeHeight = height || shell.offsetHeight
+    let lastClientX = event.clientX
+    let lastClientY = event.clientY
 
     const move = (moveEvent) => {
+      lastClientX = moveEvent.clientX
+      lastClientY = moveEvent.clientY
       const nextX = clamp(originX + moveEvent.clientX - startX, 0, canvasRect.width - nodeWidth)
       const nextY = clamp(originY + moveEvent.clientY - startY, 0, canvasRect.height - nodeHeight)
 
@@ -63,6 +70,36 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     const stop = () => {
       window.removeEventListener('mousemove', move)
       window.removeEventListener('mouseup', stop)
+
+      const previousPointerEvents = shell.style.pointerEvents
+      shell.style.pointerEvents = 'none'
+      const target = document.elementFromPoint(lastClientX, lastClientY)
+      shell.style.pointerEvents = previousPointerEvents
+      const targetSurface = target?.closest?.('.layout-surface')
+      const nextParentId = targetSurface?.dataset.nodeId || targetSurface?.closest?.('.node-shell')?.dataset.nodeId
+
+      if (!targetSurface || !nextParentId || nextParentId === parentId || nextParentId === id) return
+
+      let cursorParentId = nextParentId
+      while (cursorParentId) {
+        if (cursorParentId === id) return
+        cursorParentId = nodes[cursorParentId]?.data.parent
+      }
+
+      const nextParent = nodes[nextParentId]
+      const nextParentLayoutMode = nextParent?.data.props.layoutMode || 'vertical'
+      const nextParentRect = targetSurface.getBoundingClientRect()
+      const nextX = clamp(lastClientX - nextParentRect.left, 0, nextParentRect.width - nodeWidth)
+      const nextY = clamp(lastClientY - nextParentRect.top, 0, nextParentRect.height - nodeHeight)
+
+      actions.setProp((draft) => {
+        draft.layout = nextParentLayoutMode === 'free' ? 'fixed' : 'flow'
+        if (nextParentLayoutMode === 'free') {
+          draft.x = Math.round(nextX)
+          draft.y = Math.round(nextY)
+        }
+      })
+      editorActions.move(id, nextParentId, nextParent?.data.nodes.length || 0)
     }
 
     window.addEventListener('mousemove', move)
@@ -98,6 +135,7 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
   return {
     connectNode,
     hovered,
+    id,
     isFixed,
     selected,
     shellStyle,

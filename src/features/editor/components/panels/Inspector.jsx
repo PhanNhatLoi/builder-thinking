@@ -23,6 +23,8 @@ import { NumberInput } from '../controls/NumberInput'
 import { TextInput } from '../controls/TextInput'
 import { InspectorSection } from './InspectorSection'
 import { RootPageInspector } from './RootPageInspector'
+import { SectionInspector } from './SectionInspector'
+import { TextInspector } from './TextInspector'
 
 export function Inspector() {
   const { actions, selectedNode } = useSelectedNode()
@@ -43,6 +45,14 @@ export function Inspector() {
 
   if (isRoot) {
     return <RootPageInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Section') {
+    return <SectionInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Text') {
+    return <TextInspector actions={actions} selectedNode={selectedNode} />
   }
 
   const setProp = (key, value) => {
