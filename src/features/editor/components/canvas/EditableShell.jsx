@@ -14,6 +14,10 @@ export function EditableShell({ children, className = '', layout = 'flow', x = 0
       ref={connectNode}
       className={`${className} node-shell ${isFixed ? 'is-fixed' : ''} ${selected ? 'is-selected' : ''} ${hovered ? 'is-hovered' : ''}`}
       style={shellStyle}
+      onMouseDown={(event) => {
+        if (!selected || !isFixed || event.target.closest('button, input, textarea')) return
+        startMove(event)
+      }}
     >
       {selected && isFixed && (
         <button className="node-move-handle" type="button" aria-label="Move fixed item" onMouseDown={startMove}>

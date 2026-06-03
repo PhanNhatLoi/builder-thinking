@@ -22,6 +22,7 @@ import { Field } from '../controls/Field'
 import { NumberInput } from '../controls/NumberInput'
 import { TextInput } from '../controls/TextInput'
 import { InspectorSection } from './InspectorSection'
+import { RootPageInspector } from './RootPageInspector'
 
 export function Inspector() {
   const { actions, selectedNode } = useSelectedNode()
@@ -39,6 +40,10 @@ export function Inspector() {
   const name = nodeTitle(selectedNode)
   const isRoot = selectedNode.id === 'ROOT'
   const layout = props.layout || 'flow'
+
+  if (isRoot) {
+    return <RootPageInspector actions={actions} selectedNode={selectedNode} />
+  }
 
   const setProp = (key, value) => {
     actions.history.throttle(400).setProp(selectedNode.id, (draft) => {

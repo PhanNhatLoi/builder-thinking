@@ -1,4 +1,4 @@
-import { useNode } from '@craftjs/core'
+import { useEditor, useNode } from '@craftjs/core'
 import { Move } from 'lucide-react'
 import { clamp } from '../utils/editorUtils'
 
@@ -6,14 +6,20 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
   const {
     connectors: { connect, drag },
     actions,
+    parentId,
     selected,
     hovered,
   } = useNode((node) => ({
+    parentId: node.data.parent,
     selected: node.events.selected,
     hovered: node.events.hovered,
   }))
 
-  const isFixed = layout === 'fixed'
+  const { parentLayoutMode } = useEditor((state) => ({
+    parentLayoutMode: parentId ? state.nodes[parentId]?.data.props.layoutMode : null,
+  }))
+
+  const isFixed = layout === 'fixed' || parentLayoutMode === 'free'
   const shellStyle = {
     width: width ? `${width}px` : undefined,
     height: height ? `${height}px` : undefined,
@@ -34,12 +40,15 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     if (!canvas) return
 
     const canvasRect = canvas.getBoundingClientRect()
+    const shell = event.currentTarget.classList.contains('node-shell') ? event.currentTarget : event.currentTarget.closest('.node-shell')
+    if (!shell) return
+
     const startX = event.clientX
     const startY = event.clientY
     const originX = x
     const originY = y
-    const nodeWidth = width || event.currentTarget.parentElement.offsetWidth
-    const nodeHeight = height || event.currentTarget.parentElement.offsetHeight
+    const nodeWidth = width || shell.offsetWidth
+    const nodeHeight = height || shell.offsetHeight
 
     const move = (moveEvent) => {
       const nextX = clamp(originX + moveEvent.clientX - startX, 0, canvasRect.width - nodeWidth)

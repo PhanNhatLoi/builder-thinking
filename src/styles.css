@@ -334,6 +334,10 @@ button:disabled {
   max-width: 100%;
 }
 
+.page-canvas.layout-grid > .node-shell:not(.is-fixed) {
+  width: 100% !important;
+}
+
 .node-shell.is-fixed {
   position: absolute;
   z-index: 2;
@@ -625,6 +629,23 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
 }
 
+.control-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.control-label,
+.number-control > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #b4b4b4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.number-control {
+  min-width: 0;
+}
+
 .compact-number {
   display: grid;
   grid-template-columns: 18px 1fr auto;
@@ -685,6 +706,10 @@ button:disabled {
   margin-bottom: 10px;
 }
 
+.field .segmented {
+  width: 100%;
+}
+
 .layout-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -732,7 +757,7 @@ button:disabled {
 }
 
 .swatches button,
-.swatches input {
+.swatches .color-picker {
   width: 24px;
   height: 24px;
   padding: 0;
@@ -741,9 +766,55 @@ button:disabled {
   border-radius: 50%;
 }
 
+.swatches .color-text {
+  width: 86px;
+  height: 24px;
+  padding: 0 8px;
+  color: #f5f5f5;
+  background: #2f2f2f;
+  border: 1px solid #5b5b5b;
+  border-radius: 6px;
+  outline: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .swatches button.active {
   outline: 2px solid #0ea5e9;
   outline-offset: 2px;
+}
+
+.compact-field {
+  margin-bottom: 0;
+}
+
+.compact-field .swatches {
+  align-items: center;
+  min-height: 30px;
+  padding: 0 8px;
+  background: #383838;
+  border: 1px solid #505050;
+  border-radius: 6px;
+}
+
+.compact-field > span {
+  display: none;
+}
+
+.inspector-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f5f5f5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inspector-checkbox input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #0ea5e9;
 }
 
 .toggle-button {

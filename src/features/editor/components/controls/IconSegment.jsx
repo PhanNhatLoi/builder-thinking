@@ -7,6 +7,7 @@ export function IconSegment({ value, onChange, options }) {
           type="button"
           className={value === key ? 'active' : ''}
           aria-label={label || key}
+          title={label || key}
           onClick={() => onChange(key)}
         >
           <Icon size={15} />
