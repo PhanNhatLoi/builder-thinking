@@ -262,18 +262,18 @@ button:disabled {
 }
 
 .bottom-tools {
-  position: sticky;
-  right: 0;
+  position: fixed;
+  right: 316px;
   bottom: 18px;
-  left: 0;
-  z-index: 8;
+  left: 276px;
+  z-index: 30;
   display: flex;
   gap: 6px;
   width: max-content;
   max-width: calc(100vw - 32px);
   height: 46px;
   align-items: center;
-  margin: -64px auto 0;
+  margin: 0 auto;
   padding: 5px;
   background: #ffffff;
   border: 1px solid #dfe4ea;
@@ -856,6 +856,11 @@ button:disabled {
     grid-template-columns: 230px minmax(420px, 1fr) 296px;
   }
 
+  .bottom-tools {
+    right: 296px;
+    left: 230px;
+  }
+
   .left-panel {
     padding: 12px;
   }
@@ -896,8 +901,9 @@ button:disabled {
   }
 
   .bottom-tools {
+    right: 12px;
     bottom: 12px;
-    margin-top: -58px;
+    left: 12px;
   }
 
   .canvas-scale {

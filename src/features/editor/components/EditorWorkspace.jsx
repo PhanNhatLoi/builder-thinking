@@ -1,6 +1,7 @@
 import { Element, Frame } from '@craftjs/core'
 import { CanvasRoot } from './canvas/CanvasRoot'
 import { ButtonBlock, CardBlock, ImageBlock, Section, TextBlock } from './canvas/elements'
+import { useFreeLayoutDropPosition } from '../hooks/useFreeLayoutDropPosition'
 import { KeyboardShortcuts } from './KeyboardShortcuts'
 import { LeftSidebar } from './panels/LeftSidebar'
 import { RightToolbar } from './panels/RightToolbar'
@@ -8,6 +9,8 @@ import { BottomComponentToolbar } from './toolbars/BottomComponentToolbar'
 import { TopBar } from './toolbars/TopBar'
 
 export function EditorWorkspace() {
+  useFreeLayoutDropPosition()
+
   return (
     <div className="workspace">
       <KeyboardShortcuts />
