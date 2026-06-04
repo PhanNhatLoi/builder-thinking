@@ -1,13 +1,12 @@
 import { useEditor } from '@craftjs/core'
 import { Download, MousePointer2, Redo2, Trash2, Undo2 } from 'lucide-react'
-import { selectedIdFromSet } from '../../utils/editorUtils'
 import { IconButton } from './IconButton'
 
 export function TopBar() {
-  const { actions, canUndo, canRedo, query, selectedId } = useEditor((state, q) => ({
+  const { actions, canUndo, canRedo, query, selectedIds } = useEditor((state, q) => ({
     canUndo: q.history.canUndo(),
     canRedo: q.history.canRedo(),
-    selectedId: selectedIdFromSet(state.events.selected),
+    selectedIds: state.events.selected ? Array.from(state.events.selected).filter((id) => id !== 'ROOT') : [],
   }))
 
   const handleExport = async () => {
@@ -26,8 +25,8 @@ export function TopBar() {
         <IconButton
           label="Delete"
           icon={Trash2}
-          disabled={!selectedId || selectedId === 'ROOT'}
-          onClick={() => selectedId && selectedId !== 'ROOT' && actions.delete(selectedId)}
+          disabled={!selectedIds.length}
+          onClick={() => selectedIds.length && actions.delete(selectedIds)}
         />
         <button className="export-button" onClick={handleExport}>
           <Download size={16} />

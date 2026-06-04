@@ -115,9 +115,10 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     hovered: node.events.hovered,
   }))
 
-  const { actions: editorActions, nodes, parentLayoutMode } = useEditor((state) => ({
+  const { actions: editorActions, nodes, parentLayoutMode, selectedIds } = useEditor((state) => ({
     nodes: state.nodes,
     parentLayoutMode: parentId ? state.nodes[parentId]?.data.props.layoutMode : null,
+    selectedIds: state.events.selected ? Array.from(state.events.selected) : [],
   }))
 
   const isFixed = parentLayoutMode ? parentLayoutMode === 'free' : layout === 'fixed'
@@ -189,6 +190,32 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     const originY = y
     const nodeWidth = width || shell.offsetWidth
     const nodeHeight = height || shell.offsetHeight
+    const groupIds = selectedIds.length > 1 && selectedIds.includes(id)
+      ? selectedIds.filter((selectedId) => {
+          const node = nodes[selectedId]
+          return selectedId !== 'ROOT' && node?.data.parent === parentId && (parentLayoutMode === 'free' || node.data.props.layout === 'fixed')
+        })
+      : []
+    const groupOrigins = groupIds.map((selectedId) => {
+      const node = nodes[selectedId]
+      const dom = node.dom
+      const props = node.data.props
+      return {
+        id: selectedId,
+        x: props.x ?? dom?.offsetLeft ?? 0,
+        y: props.y ?? dom?.offsetTop ?? 0,
+        width: props.width ?? dom?.offsetWidth ?? 0,
+        height: props.height ?? dom?.offsetHeight ?? 0,
+      }
+    })
+    const groupBox = groupOrigins.length
+      ? {
+          left: Math.min(...groupOrigins.map((item) => item.x)),
+          top: Math.min(...groupOrigins.map((item) => item.y)),
+          right: Math.max(...groupOrigins.map((item) => item.x + item.width)),
+          bottom: Math.max(...groupOrigins.map((item) => item.y + item.height)),
+        }
+      : null
     let lastClientX = event.clientX
     let lastClientY = event.clientY
 
@@ -204,13 +231,26 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
           deltaX = 0
         }
       }
-      const nextX = clamp(originX + deltaX, 0, canvasRect.width - nodeWidth)
-      const nextY = clamp(originY + deltaY, 0, canvasRect.height - nodeHeight)
+      const maxDeltaX = groupBox ? canvasRect.width - (groupBox.right - groupBox.left) - groupBox.left : canvasRect.width - nodeWidth - originX
+      const maxDeltaY = groupBox ? canvasRect.height - (groupBox.bottom - groupBox.top) - groupBox.top : canvasRect.height - nodeHeight - originY
+      const clampedDeltaX = clamp(deltaX, groupBox ? -groupBox.left : -originX, maxDeltaX)
+      const clampedDeltaY = clamp(deltaY, groupBox ? -groupBox.top : -originY, maxDeltaY)
+      const nextX = clamp(originX + clampedDeltaX, 0, canvasRect.width - nodeWidth)
+      const nextY = clamp(originY + clampedDeltaY, 0, canvasRect.height - nodeHeight)
 
-      actions.setProp((draft) => {
-        draft.x = Math.round(nextX)
-        draft.y = Math.round(nextY)
-      }, 16)
+      if (groupOrigins.length > 1) {
+        groupOrigins.forEach((item) => {
+          editorActions.setProp(item.id, (draft) => {
+            draft.x = Math.round(item.x + clampedDeltaX)
+            draft.y = Math.round(item.y + clampedDeltaY)
+          })
+        })
+      } else {
+        actions.setProp((draft) => {
+          draft.x = Math.round(nextX)
+          draft.y = Math.round(nextY)
+        }, 16)
+      }
 
       if (moveEvent.altKey) {
         requestAnimationFrame(updateMeasurements)

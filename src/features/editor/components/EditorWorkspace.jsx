@@ -2,6 +2,7 @@ import { Element, Frame } from '@craftjs/core'
 import { useState } from 'react'
 import { CanvasRoot } from './canvas/CanvasRoot'
 import { CanvasCreationLayer } from './canvas/CanvasCreationLayer'
+import { SelectionMarqueeLayer } from './canvas/SelectionMarqueeLayer'
 import { ImageBlock, Section, TextBlock } from './canvas/elements'
 import { KeyboardShortcuts } from './KeyboardShortcuts'
 import { LeftSidebar } from './panels/LeftSidebar'
@@ -24,6 +25,7 @@ export function EditorWorkspace() {
               <Element is={CanvasRoot} canvas>
               </Element>
             </Frame>
+            <SelectionMarqueeLayer activeTool={activeTool} />
             <CanvasCreationLayer activeTool={activeTool} onComplete={() => setActiveTool('pointer')} />
           </div>
           <BottomComponentToolbar activeTool={activeTool} onToolChange={setActiveTool} />

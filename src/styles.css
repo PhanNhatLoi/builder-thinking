@@ -336,6 +336,15 @@ button:disabled {
   border-radius: 8px;
 }
 
+.selection-marquee {
+  position: fixed;
+  z-index: 15;
+  pointer-events: none;
+  background: rgb(14 165 233 / 12%);
+  border: 1.5px solid #0ea5e9;
+  border-radius: 4px;
+}
+
 .dimension-badge {
   position: absolute;
   z-index: 7;
@@ -627,6 +636,19 @@ button:disabled {
 
 .inspector.empty-panel {
   padding: 24px;
+}
+
+.group-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  color: #ffffff;
+  background: #b91c1c;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .inspector-top {

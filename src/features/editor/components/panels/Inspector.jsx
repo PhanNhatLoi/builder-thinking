@@ -28,7 +28,20 @@ import { ShapeInspector } from './ShapeInspector'
 import { TextInspector } from './TextInspector'
 
 export function Inspector() {
-  const { actions, selectedNode } = useSelectedNode()
+  const { actions, selectedIds, selectedNode } = useSelectedNode()
+
+  if (selectedIds.length > 1) {
+    return (
+      <section className="inspector empty-panel">
+        <PanelRight size={18} />
+        <p>{selectedIds.length} items selected.</p>
+        <button type="button" className="group-delete-button" onClick={() => actions.delete(selectedIds.filter((id) => id !== 'ROOT'))}>
+          <Trash2 size={15} />
+          Delete group
+        </button>
+      </section>
+    )
+  }
 
   if (!selectedNode) {
     return (
