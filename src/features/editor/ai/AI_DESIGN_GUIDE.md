@@ -209,6 +209,201 @@ In auto layout, use flow positioning:
 }
 ```
 
+## Layer and container rules
+
+Think like Figma/Canva layers.
+
+If a visible block acts as a background, panel, sidebar, card, hero area, avatar frame, contact column, content column, or grouped visual region, create a `Section` for that block and put its internal elements inside that section.
+
+Do not place every visual element directly under `ROOT` unless they are truly independent top-level elements.
+
+### Parent-child rule
+
+Every child inside a section must satisfy both conditions:
+
+- The child node's `parent` equals the section id.
+- The section node's `nodes` array contains the child id.
+
+Correct:
+
+```json
+{
+  "ROOT": {
+    "type": { "resolvedName": "CanvasRoot" },
+    "isCanvas": true,
+    "props": { "layoutMode": "free" },
+    "displayName": "Page",
+    "custom": {},
+    "hidden": false,
+    "nodes": ["sidebar-section"],
+    "linkedNodes": {}
+  },
+  "sidebar-section": {
+    "type": { "resolvedName": "Section" },
+    "isCanvas": true,
+    "props": {
+      "background": "#284a7d",
+      "layoutMode": "free",
+      "layout": "fixed",
+      "x": 40,
+      "y": 40,
+      "width": 260,
+      "height": 920
+    },
+    "displayName": "Sidebar",
+    "custom": {},
+    "parent": "ROOT",
+    "hidden": false,
+    "nodes": ["avatar-shape", "contact-title", "contact-text"],
+    "linkedNodes": {}
+  },
+  "avatar-shape": {
+    "type": { "resolvedName": "ShapeBlock" },
+    "isCanvas": false,
+    "props": {
+      "shapeType": "ellipse",
+      "fill": "#d9b38f",
+      "layout": "fixed",
+      "x": 40,
+      "y": 40,
+      "width": 160,
+      "height": 160
+    },
+    "displayName": "Avatar",
+    "custom": {},
+    "parent": "sidebar-section",
+    "hidden": false,
+    "nodes": [],
+    "linkedNodes": {}
+  },
+  "contact-title": {
+    "type": { "resolvedName": "TextBlock" },
+    "isCanvas": false,
+    "props": {
+      "text": "CONTACT",
+      "fontSize": 22,
+      "fontWeight": 700,
+      "color": "#ffffff",
+      "textSizing": "autoHeight",
+      "layout": "fixed",
+      "x": 32,
+      "y": 260,
+      "width": 190,
+      "height": 32
+    },
+    "displayName": "Contact Title",
+    "custom": {},
+    "parent": "sidebar-section",
+    "hidden": false,
+    "nodes": [],
+    "linkedNodes": {}
+  },
+  "contact-text": {
+    "type": { "resolvedName": "TextBlock" },
+    "isCanvas": false,
+    "props": {
+      "text": "Ho Chi Minh City\n0901 234 567\nnguyenvana@gmail.com",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "lineHeight": 22,
+      "color": "#ffffff",
+      "textSizing": "autoHeight",
+      "layout": "fixed",
+      "x": 32,
+      "y": 304,
+      "width": 200,
+      "height": 74
+    },
+    "displayName": "Contact Details",
+    "custom": {},
+    "parent": "sidebar-section",
+    "hidden": false,
+    "nodes": [],
+    "linkedNodes": {}
+  }
+}
+```
+
+Incorrect:
+
+```json
+{
+  "ROOT": {
+    "nodes": ["sidebar-section", "avatar-shape", "contact-title", "contact-text"]
+  },
+  "sidebar-section": {
+    "parent": "ROOT",
+    "nodes": []
+  },
+  "avatar-shape": {
+    "parent": "ROOT"
+  },
+  "contact-title": {
+    "parent": "ROOT"
+  },
+  "contact-text": {
+    "parent": "ROOT"
+  }
+}
+```
+
+The incorrect version visually overlaps the elements on top of the sidebar, but the layer structure is wrong. Moving or resizing the sidebar will not move its internal content.
+
+### Coordinate rule for nested sections
+
+Child coordinates are relative to their parent section, not to the page root.
+
+If a sidebar section is at `x: 40`, `y: 40`, and an avatar appears 40px from the sidebar's left edge and 40px from its top edge, the avatar should use:
+
+```json
+{
+  "parent": "sidebar-section",
+  "props": {
+    "x": 40,
+    "y": 40
+  }
+}
+```
+
+Do not add the parent's offset into the child position.
+
+### Layer order rule
+
+Layer order is controlled by each parent's `nodes` array.
+
+- Earlier ids are lower/back layers.
+- Later ids are higher/front layers.
+- Background sections should usually appear before text/icons inside the same parent.
+- A section's children should be listed inside that section, not beside it in `ROOT`.
+
+Example:
+
+```json
+{
+  "ROOT": {
+    "nodes": ["background-shape", "sidebar-section", "main-content-section"]
+  },
+  "sidebar-section": {
+    "nodes": ["avatar-shape", "contact-title", "contact-text", "profile-title", "profile-text"]
+  }
+}
+```
+
+### When to create a Section
+
+Create a section when elements should move together, resize together, or conceptually belong to one block.
+
+Common examples:
+
+- CV sidebar with avatar, contact, profile, education.
+- Resume main column with name, title, experience, skills.
+- Product card with image, title, price, and CTA.
+- Social post background panel with headline, badge, and decorative shapes.
+- Hero section with image background and text overlay.
+- Any visible rectangle/panel that has multiple internal children.
+
+Use `layoutMode: "free"` for visual compositions with exact placement. Use `vertical`, `horizontal`, or `grid` only when children should reflow automatically.
+
 ## Components
 
 ### Section
@@ -262,6 +457,7 @@ Use text blocks for headings, labels, body text, and captions.
   "align": "left",
   "verticalAlign": "top",
   "opacity": 100,
+  "textSizing": "autoHeight",
   "layout": "fixed",
   "x": 80,
   "y": 80,
@@ -271,6 +467,13 @@ Use text blocks for headings, labels, body text, and captions.
 ```
 
 Available font families: `Inter`, `Roboto`, `Poppins`, `Montserrat`, `Raleway`, `Oswald`, `Bebas Neue`, `Playfair Display`, `Merriweather`, `Lora`, `Pacifico`, `Dancing Script`.
+
+Text sizing modes:
+
+- `free`: width and height are both manual. Text wraps inside the fixed box and may be clipped if the box is too small.
+- `autoHeight`: width is manual, height follows wrapped content automatically. Use this for Canva/Figma-like text boxes.
+
+Do not rely on automatic font-size shrinking. Font size stays exactly as declared in `fontSize`.
 
 ### ShapeBlock
 
@@ -360,7 +563,7 @@ Use `ImageBlock` for normal images. For uploaded/local images, use a data URL in
     {
       "id": "page-1",
       "name": "Poster",
-      "serialized": "{\"ROOT\":{\"type\":{\"resolvedName\":\"CanvasRoot\"},\"isCanvas\":true,\"props\":{\"pageSizePreset\":\"a4\",\"width\":860,\"height\":1040,\"background\":\"#ffffff\",\"opacity\":100,\"paddingTop\":44,\"paddingRight\":44,\"paddingBottom\":44,\"paddingLeft\":44,\"gapX\":18,\"gapY\":18,\"layoutMode\":\"free\",\"alignItems\":\"stretch\",\"justifyContent\":\"start\",\"wrap\":false,\"gridRows\":2,\"gridColumns\":2,\"gridFlow\":\"row\",\"clipContent\":false,\"borderWidth\":1,\"borderColor\":\"#d8dee8\",\"borderStyle\":\"solid\"},\"displayName\":\"Page\",\"custom\":{},\"hidden\":false,\"nodes\":[\"title-1\"],\"linkedNodes\":{}},\"title-1\":{\"type\":{\"resolvedName\":\"TextBlock\"},\"isCanvas\":false,\"props\":{\"text\":\"AI Generated Design\",\"richText\":null,\"fontFamily\":\"Inter\",\"fontSize\":48,\"fontWeight\":700,\"lineHeight\":58,\"letterSpacing\":0,\"color\":\"#111827\",\"align\":\"left\",\"verticalAlign\":\"top\",\"opacity\":100,\"layout\":\"fixed\",\"x\":96,\"y\":96,\"width\":560,\"height\":70},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}"
+      "serialized": "{\"ROOT\":{\"type\":{\"resolvedName\":\"CanvasRoot\"},\"isCanvas\":true,\"props\":{\"pageSizePreset\":\"a4\",\"width\":860,\"height\":1040,\"background\":\"#ffffff\",\"opacity\":100,\"paddingTop\":44,\"paddingRight\":44,\"paddingBottom\":44,\"paddingLeft\":44,\"gapX\":18,\"gapY\":18,\"layoutMode\":\"free\",\"alignItems\":\"stretch\",\"justifyContent\":\"start\",\"wrap\":false,\"gridRows\":2,\"gridColumns\":2,\"gridFlow\":\"row\",\"clipContent\":false,\"borderWidth\":1,\"borderColor\":\"#d8dee8\",\"borderStyle\":\"solid\"},\"displayName\":\"Page\",\"custom\":{},\"hidden\":false,\"nodes\":[\"title-1\"],\"linkedNodes\":{}},\"title-1\":{\"type\":{\"resolvedName\":\"TextBlock\"},\"isCanvas\":false,\"props\":{\"text\":\"AI Generated Design\",\"richText\":null,\"fontFamily\":\"Inter\",\"fontSize\":48,\"fontWeight\":700,\"lineHeight\":58,\"letterSpacing\":0,\"color\":\"#111827\",\"align\":\"left\",\"verticalAlign\":\"top\",\"opacity\":100,\"textSizing\":\"autoHeight\",\"layout\":\"fixed\",\"x\":96,\"y\":96,\"width\":560,\"height\":70},\"displayName\":\"Text\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}"
     }
   ]
 }

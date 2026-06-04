@@ -46,6 +46,11 @@ const weightOptions = [
   { value: '700', label: 'Bold' },
 ]
 
+const textSizingOptions = [
+  { value: 'free', label: 'Free size' },
+  { value: 'autoHeight', label: 'Auto height' },
+]
+
 function NumberControl({ caption, label, title = caption, value, min, max, suffix, disabled = false, onChange }) {
   return (
     <div className="number-control">
@@ -64,6 +69,7 @@ export function TextInspector({ actions, selectedNode }) {
   const fontWeight = props.fontWeight ?? props.weight ?? 500
   const fontSize = props.fontSize ?? 24
   const minLineHeight = Math.ceil(fontSize * 1.18)
+  const textSizing = props.textSizing || 'autoHeight'
   const fontSizeOptions = [...new Set([...baseFontSizeOptions, fontSize])]
     .sort((first, second) => first - second)
     .map((size) => ({ value: String(size), label: `${size}` }))
@@ -106,13 +112,21 @@ export function TextInspector({ actions, selectedNode }) {
       </div>
 
       <InspectorSection title="Position" icon={Move}>
+        <Field label="Sizing">
+          <SelectControl
+            label="Text sizing"
+            value={textSizing}
+            options={textSizingOptions}
+            onChange={(value) => setProp('textSizing', value)}
+          />
+        </Field>
         <div className="control-grid two">
           <NumberControl caption="X" label="X" value={props.x ?? 0} min={0} max={1920} disabled={!canUsePosition} onChange={(value) => setProp('x', value)} />
           <NumberControl caption="Y" label="Y" value={props.y ?? 0} min={0} max={3200} disabled={!canUsePosition} onChange={(value) => setProp('y', value)} />
         </div>
         <div className="control-grid two">
           <NumberControl caption="Width" label="W" value={props.width ?? 240} min={24} max={1920} onChange={(value) => setProp('width', value)} />
-          <NumberControl caption="Height" label="H" value={props.height ?? 40} min={16} max={3200} onChange={(value) => setProp('height', value)} />
+          <NumberControl caption="Height" label="H" value={props.height ?? 40} min={16} max={3200} disabled={textSizing === 'autoHeight'} onChange={(value) => setProp('height', value)} />
         </div>
       </InspectorSection>
 

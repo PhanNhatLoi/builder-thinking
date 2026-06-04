@@ -151,6 +151,7 @@ export function TextBlock({
   align = 'left',
   verticalAlign = 'top',
   opacity = 100,
+  textSizing = 'autoHeight',
   layout = 'flow',
   x = 80,
   y = 80,
@@ -183,9 +184,7 @@ export function TextBlock({
   const pendingPropsRef = useRef({})
   const commitTimerRef = useRef(null)
   const [editing, setEditing] = useState(false)
-  const [fittedFontSize, setFittedFontSize] = useState(fontSize)
   const safeLineHeight = Math.max(lineHeight, Math.ceil(fontSize * 1.18))
-  const fittedLineHeight = Math.max(1, Math.round(safeLineHeight * (fittedFontSize / fontSize)))
 
   const queueCraftUpdate = useCallback((nextProps, delay = 250) => {
     pendingPropsRef.current = {
@@ -223,10 +222,6 @@ export function TextBlock({
   }, [richText, text])
 
   useEffect(() => {
-    setFittedFontSize(fontSize)
-  }, [fontFamily, fontSize, fontWeight, letterSpacing, lineHeight, resolvedFontWeight, text, weight])
-
-  useEffect(() => {
     return () => window.clearTimeout(commitTimerRef.current)
   }, [])
 
@@ -238,33 +233,8 @@ export function TextBlock({
     let animationFrame = null
     const readTextBox = () => {
       const contentHeight = Math.ceil(content.scrollHeight)
-      const contentWidth = Math.ceil(content.scrollWidth)
-      const boxHeight = Math.ceil(root.clientHeight)
-      const boxWidth = Math.ceil(root.clientWidth)
-      if (!boxHeight || !boxWidth) return
-
-      const overflowsHeight = contentHeight > boxHeight + 1
-      const overflowsWidth = contentWidth > boxWidth + 1
-
-      if (editing) {
-        setFittedFontSize(fontSize)
-        if (contentHeight > height + 1) {
-          queueCraftUpdate({ height: contentHeight }, 120)
-        }
-        return
-      }
-
-      if ((overflowsHeight || overflowsWidth) && fittedFontSize > 8) {
-        const widthRatio = overflowsWidth ? boxWidth / contentWidth : 1
-        const heightRatio = overflowsHeight ? boxHeight / contentHeight : 1
-        const fitRatio = Math.max(0.5, Math.min(widthRatio, heightRatio))
-        const nextFontSize = Math.floor(fittedFontSize * fitRatio) - 1
-        setFittedFontSize((current) => Math.max(8, Math.min(current - 1, nextFontSize)))
-        return
-      }
-
-      if (!overflowsHeight && !overflowsWidth && fittedFontSize < fontSize) {
-        setFittedFontSize((current) => Math.min(fontSize, current + 1))
+      if (textSizing === 'autoHeight' && contentHeight > 0 && Math.abs(contentHeight - height) > 1) {
+        queueCraftUpdate({ height: contentHeight }, editing ? 120 : 180)
       }
     }
 
@@ -281,7 +251,7 @@ export function TextBlock({
       window.cancelAnimationFrame(animationFrame)
       observer.disconnect()
     }
-  }, [editing, fittedFontSize, fontSize, height, queueCraftUpdate])
+  }, [editing, height, queueCraftUpdate, textSizing])
 
   return (
     <EditableShell className="text-shell" layout={layout} x={x} y={y} width={width} height={height}>
@@ -292,11 +262,11 @@ export function TextBlock({
           color,
           display: 'flex',
           fontFamily: fontFamilyCssValue,
-          fontSize: fittedFontSize,
+          fontSize,
           fontWeight: resolvedFontWeight,
           justifyContent: justifyContentMap[align],
           letterSpacing,
-          lineHeight: `${fittedLineHeight}px`,
+          lineHeight: `${safeLineHeight}px`,
           opacity: opacity / 100,
           textAlign: align,
         }}
@@ -306,7 +276,6 @@ export function TextBlock({
           className="text-lexical-shell"
           onFocus={() => {
             setEditing(true)
-            setFittedFontSize(fontSize)
           }}
         >
           <TextLexicalEditor
@@ -321,11 +290,10 @@ export function TextBlock({
             }}
             onFocus={() => {
               setEditing(true)
-              setFittedFontSize(fontSize)
             }}
             onBlur={() => {
               const content = contentRef.current?.querySelector('.text-content')
-              const nextHeight = content ? Math.max(height, Math.ceil(content.scrollHeight)) : height
+              const nextHeight = textSizing === 'autoHeight' && content ? Math.ceil(content.scrollHeight) : height
               flushCraftUpdate({
                 text: latestTextRef.current,
                 richText: latestRichTextRef.current,
@@ -354,6 +322,7 @@ TextBlock.craft = {
     align: 'left',
     verticalAlign: 'top',
     opacity: 100,
+    textSizing: 'autoHeight',
     layout: 'flow',
     x: 80,
     y: 80,
