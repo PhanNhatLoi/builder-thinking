@@ -2,7 +2,15 @@ import { useEditor } from '@craftjs/core'
 import { Download, MousePointer2, Redo2, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { IconButton } from './IconButton'
 
-export function TopBar({ zoom = 1, onZoomIn, onZoomOut, onZoomReset }) {
+export function TopBar({
+  activePageId,
+  onPageChange,
+  pages = [],
+  zoom = 1,
+  onZoomIn,
+  onZoomOut,
+  onZoomReset,
+}) {
   const { actions, canUndo, canRedo, query, selectedIds } = useEditor((state, q) => ({
     canUndo: q.history.canUndo(),
     canRedo: q.history.canRedo(),
@@ -20,6 +28,15 @@ export function TopBar({ zoom = 1, onZoomIn, onZoomOut, onZoomReset }) {
         <span>Builder Thinking</span>
       </div>
       <div className="top-actions">
+        <div className="page-controls" aria-label="Page controls">
+          <select className="page-select" value={activePageId} aria-label="Active page" onChange={(event) => onPageChange?.(event.target.value)}>
+            {pages.map((page, index) => (
+              <option key={page.id} value={page.id}>
+                {page.name || `Page ${index + 1}`}
+              </option>
+            ))}
+          </select>
+        </div>
         <IconButton label="Undo" icon={Undo2} disabled={!canUndo} onClick={() => actions.history.undo()} />
         <IconButton label="Redo" icon={Redo2} disabled={!canRedo} onClick={() => actions.history.redo()} />
         <div className="zoom-controls" aria-label="Canvas zoom controls">

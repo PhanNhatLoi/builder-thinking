@@ -1,5 +1,6 @@
 import { useEditor } from '@craftjs/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 function getClientPoint(event) {
   return {
@@ -157,5 +158,5 @@ export function SelectionMarqueeLayer({ activeTool }) {
 
   if (!marqueeStyle) return null
 
-  return <div className="selection-marquee" style={marqueeStyle} />
+  return createPortal(<div className="selection-marquee" style={marqueeStyle} />, document.body)
 }

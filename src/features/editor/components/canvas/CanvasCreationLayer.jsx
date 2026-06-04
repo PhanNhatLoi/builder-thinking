@@ -1,5 +1,6 @@
 import { Element, useEditor } from '@craftjs/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ImageBlock, Section, ShapeBlock, TextBlock } from './elements'
 
 const minimumSize = {
@@ -14,12 +15,18 @@ const minimumSize = {
 
 const pointTools = new Set(['shape-line', 'shape-polygon', 'shape-image'])
 
-function getPoint(surface, event, zoom = 1) {
+function getElementScale(element) {
+  if (!element?.offsetWidth) return 1
+  return element.getBoundingClientRect().width / element.offsetWidth || 1
+}
+
+function getPoint(surface, event) {
   const rect = surface.getBoundingClientRect()
+  const scale = getElementScale(surface)
 
   return {
-    x: (event.clientX - rect.left) / zoom,
-    y: (event.clientY - rect.top) / zoom,
+    x: (event.clientX - rect.left) / scale,
+    y: (event.clientY - rect.top) / scale,
   }
 }
 
@@ -68,14 +75,6 @@ function snapPoint(start, end) {
 
 function shouldLockRect(tool, event) {
   return event.shiftKey && (tool === 'shape-rectangle' || tool === 'shape-ellipse')
-}
-
-function getPreviewMinSize(tool, zoom) {
-  const minSize = minimumSize[tool]
-  return {
-    width: minSize.width * zoom,
-    height: minSize.height * zoom,
-  }
 }
 
 function getLayoutProps(nodes, parentId, rect) {
@@ -130,10 +129,11 @@ function getPolygonProps(points) {
   }
 }
 
-function getImageSize(naturalWidth, naturalHeight, surface, point, zoom = 1) {
+function getImageSize(naturalWidth, naturalHeight, surface, point) {
   const surfaceRect = surface.getBoundingClientRect()
-  const availableWidth = Math.max(surfaceRect.width / zoom - point.x, 80)
-  const availableHeight = Math.max(surfaceRect.height / zoom - point.y, 80)
+  const scale = getElementScale(surface)
+  const availableWidth = Math.max(surfaceRect.width / scale - point.x, 80)
+  const availableHeight = Math.max(surfaceRect.height / scale - point.y, 80)
   const ratio = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight)
 
   return {
@@ -163,7 +163,7 @@ function createToolElement(tool, props) {
   return null
 }
 
-export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
+export function CanvasCreationLayer({ activeTool, onComplete }) {
   const [draft, setDraft] = useState(null)
   const [pointDraft, setPointDraft] = useState(null)
   const fileInputRef = useRef(null)
@@ -172,7 +172,6 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
   const pointDraftRef = useRef(null)
   const parentIdRef = useRef('ROOT')
   const surfaceRef = useRef(null)
-  const startClientPointRef = useRef(null)
   const startPointRef = useRef(null)
   const { actions, nodes, query } = useEditor((state) => ({
     nodes: state.nodes,
@@ -186,16 +185,15 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
     query,
   }
 
-  const previewStyle = useMemo(() => {
-    if (!draft) return null
-
-    return {
-      left: draft.x,
-      top: draft.y,
-      width: draft.width,
-      height: draft.height,
-    }
-  }, [draft])
+  const previewRoot = draft ? surfaceRef.current : null
+  const previewStyle = draft
+    ? {
+        left: draft.x,
+        top: draft.y,
+        width: draft.width,
+        height: draft.height,
+      }
+    : null
 
   useEffect(() => {
     if (!isCreateTool) {
@@ -235,7 +233,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
 
       if (activeTool === 'shape-image') {
         pendingImageRef.current = {
-          point: getPoint(surface, event, zoom),
+          point: getPoint(surface, event),
           surface,
           parentId: parentIdRef.current,
         }
@@ -244,7 +242,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
       }
 
       if (activeTool === 'shape-line') {
-        const surfacePoint = getPoint(surface, event, zoom)
+        const surfacePoint = getPoint(surface, event)
         const clientPoint = getClientPoint(event)
         const current = pointDraftRef.current
 
@@ -268,7 +266,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
       }
 
       if (activeTool === 'shape-polygon') {
-        const surfacePoint = getPoint(surface, event, zoom)
+        const surfacePoint = getPoint(surface, event)
         const clientPoint = getClientPoint(event)
         const current = pointDraftRef.current
 
@@ -284,7 +282,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
           return
         }
 
-        const isClosing = current.points.length >= 3 && distance(current.points[0], surfacePoint) <= 10 / zoom
+        const isClosing = current.points.length >= 3 && distance(current.points[0], surfacePoint) <= 10 / getElementScale(surface)
         if (isClosing) {
           const { rect, points } = getPolygonProps(current.points)
           updatePointDraft(null)
@@ -304,10 +302,8 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
         return
       }
 
-      startClientPointRef.current = getClientPoint(event)
-      startPointRef.current = getPoint(surface, event, zoom)
-      const minSize = getPreviewMinSize(activeTool, zoom)
-      setDraft(getRectFromPoints(startClientPointRef.current, startClientPointRef.current, minSize, shouldLockRect(activeTool, event)))
+      startPointRef.current = getPoint(surface, event)
+      setDraft(getRectFromPoints(startPointRef.current, startPointRef.current, minimumSize[activeTool], shouldLockRect(activeTool, event)))
 
       window.addEventListener('mousemove', handleMouseMove, true)
       window.addEventListener('pointermove', handleMouseMove, true)
@@ -325,9 +321,10 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
         })
       }
 
-      const startClientPoint = startClientPointRef.current
-      if (!startClientPoint) return
-      setDraft(getRectFromPoints(startClientPoint, getClientPoint(event), getPreviewMinSize(activeTool, zoom), shouldLockRect(activeTool, event)))
+      const surface = surfaceRef.current
+      const startPoint = startPointRef.current
+      if (!surface || !startPoint) return
+      setDraft(getRectFromPoints(startPoint, getPoint(surface, event), minimumSize[activeTool], shouldLockRect(activeTool, event)))
     }
 
     const handleMouseUp = (event) => {
@@ -338,12 +335,11 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
       event.preventDefault()
       event.stopPropagation()
 
-      const rect = getRectFromPoints(startPoint, getPoint(surface, event, zoom), minimumSize[activeTool], shouldLockRect(activeTool, event))
+      const rect = getRectFromPoints(startPoint, getPoint(surface, event), minimumSize[activeTool], shouldLockRect(activeTool, event))
       const parentId = parentIdRef.current
       addElement(activeTool, surface, parentId, rect)
 
       setDraft(null)
-      startClientPointRef.current = null
       startPointRef.current = null
       surfaceRef.current = null
       window.removeEventListener('mousemove', handleMouseMove, true)
@@ -362,7 +358,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
       window.removeEventListener('mouseup', handleMouseUp, true)
       window.removeEventListener('pointerup', handleMouseUp, true)
     }
-  }, [activeTool, isCreateTool, zoom])
+  }, [activeTool, isCreateTool])
 
   const handleImageFile = (file) => {
     const placement = pendingImageRef.current
@@ -373,7 +369,7 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
     reader.onload = () => {
       const image = new Image()
       image.onload = () => {
-        const size = getImageSize(image.naturalWidth || 240, image.naturalHeight || 160, placement.surface, placement.point, zoom)
+        const size = getImageSize(image.naturalWidth || 240, image.naturalHeight || 160, placement.surface, placement.point)
         const rect = {
           x: Math.round(placement.point.x),
           y: Math.round(placement.point.y),
@@ -412,21 +408,25 @@ export function CanvasCreationLayer({ activeTool, onComplete, zoom = 1 }) {
           event.target.value = ''
         }}
       />
-      {previewStyle && (
-        <div className="creation-preview" style={previewStyle}>
-          <div className="dimension-badge creation-dimension-badge">
-            {Math.round(draft.width / zoom)} x {Math.round(draft.height / zoom)}
-          </div>
-        </div>
-      )}
-      {pointDraft && (
-        <svg className="point-creation-preview">
-          <polyline points={pointPreview.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#0ea5e9" strokeDasharray="6 5" strokeWidth="2" />
-          {pointDraft.clientPoints.map((point, index) => (
-            <circle key={`${point.x}-${point.y}-${index}`} cx={point.x} cy={point.y} r={index === 0 ? 5 : 4} fill={index === 0 ? '#0b5cad' : '#0ea5e9'} stroke="#ffffff" strokeWidth="2" />
-          ))}
-        </svg>
-      )}
+      {previewRoot && previewStyle &&
+        createPortal(
+          <div className="creation-preview" style={previewStyle}>
+            <div className="dimension-badge creation-dimension-badge">
+              {draft.width} x {draft.height}
+            </div>
+          </div>,
+          previewRoot,
+        )}
+      {pointDraft &&
+        createPortal(
+          <svg className="point-creation-preview">
+            <polyline points={pointPreview.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#0ea5e9" strokeDasharray="6 5" strokeWidth="2" />
+            {pointDraft.clientPoints.map((point, index) => (
+              <circle key={`${point.x}-${point.y}-${index}`} cx={point.x} cy={point.y} r={index === 0 ? 5 : 4} fill={index === 0 ? '#0b5cad' : '#0ea5e9'} stroke="#ffffff" strokeWidth="2" />
+            ))}
+          </svg>,
+          document.body,
+        )}
     </>
   )
 }
