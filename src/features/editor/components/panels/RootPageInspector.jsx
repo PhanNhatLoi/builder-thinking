@@ -19,7 +19,34 @@ import { ColorControl } from '../controls/ColorControl'
 import { CompactNumber } from '../controls/CompactNumber'
 import { Field } from '../controls/Field'
 import { IconSegment } from '../controls/IconSegment'
+import { SelectControl } from '../controls/SelectControl'
 import { InspectorSection } from './InspectorSection'
+
+const pageSizeLimits = {
+  minWidth: 320,
+  maxWidth: 1920,
+  minHeight: 320,
+  maxHeight: 3200,
+}
+
+const pageSizePresets = {
+  '1:1': { label: '1:1 Square', width: 860, height: 860 },
+  '3:4': { label: '3:4 Portrait', width: 860, height: 1147 },
+  '4:3': { label: '4:3 Landscape', width: 860, height: 645 },
+  '9:16': { label: '9:16 Portrait', width: 860, height: 1529 },
+  '16:9': { label: '16:9 Landscape', width: 860, height: 484 },
+  a4: { label: 'A4 Standard', width: 860, height: 1040 },
+}
+
+const pageSizeOptions = [
+  { value: 'a4', label: 'A4 Standard' },
+  { value: '1:1', label: '1:1 Square' },
+  { value: '3:4', label: '3:4 Portrait' },
+  { value: '4:3', label: '4:3 Landscape' },
+  { value: '9:16', label: '9:16 Portrait' },
+  { value: '16:9', label: '16:9 Landscape' },
+  { value: 'custom', label: 'Custom size' },
+]
 
 const layoutModes = [
   ['free', Move, 'Free layout'],
@@ -51,11 +78,62 @@ function propValue(props, key, fallbackKey, fallbackValue = 0) {
   return props[key] ?? props[fallbackKey] ?? fallbackValue
 }
 
-function NumberControl({ caption, label, title = caption, value, min, max, suffix, onChange }) {
+function getPageSizePreset(props) {
+  if (props.pageSizePreset === 'custom') return 'custom'
+  const matchingPreset = Object.entries(pageSizePresets).find(([, size]) => {
+    return props.width === size.width && props.height === size.height
+  })
+
+  return props.pageSizePreset && pageSizePresets[props.pageSizePreset] ? props.pageSizePreset : matchingPreset?.[0] || 'custom'
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function getScaledPageSize(preset, changedKey, changedValue) {
+  const size = pageSizePresets[preset]
+  if (!size) return { [changedKey]: changedValue }
+
+  const ratio = size.width / size.height
+  if (changedKey === 'width') {
+    const width = clamp(changedValue, pageSizeLimits.minWidth, pageSizeLimits.maxWidth)
+    const height = Math.round(width / ratio)
+
+    if (height > pageSizeLimits.maxHeight) {
+      return {
+        width: Math.round(pageSizeLimits.maxHeight * ratio),
+        height: pageSizeLimits.maxHeight,
+      }
+    }
+
+    return {
+      width,
+      height: clamp(height, pageSizeLimits.minHeight, pageSizeLimits.maxHeight),
+    }
+  }
+
+  const height = clamp(changedValue, pageSizeLimits.minHeight, pageSizeLimits.maxHeight)
+  const width = Math.round(height * ratio)
+
+  if (width > pageSizeLimits.maxWidth) {
+    return {
+      width: pageSizeLimits.maxWidth,
+      height: Math.round(pageSizeLimits.maxWidth / ratio),
+    }
+  }
+
+  return {
+    width: clamp(width, pageSizeLimits.minWidth, pageSizeLimits.maxWidth),
+    height,
+  }
+}
+
+function NumberControl({ caption, label, title = caption, value, min, max, suffix, disabled = false, onChange }) {
   return (
     <div className="number-control">
       <span>{caption}</span>
-      <CompactNumber label={label} title={title} value={value} min={min} max={max} suffix={suffix} onChange={onChange} />
+      <CompactNumber label={label} title={title} value={value} min={min} max={max} suffix={suffix} disabled={disabled} onChange={onChange} />
     </div>
   )
 }
@@ -63,6 +141,8 @@ function NumberControl({ caption, label, title = caption, value, min, max, suffi
 export function RootPageInspector({ actions, selectedNode }) {
   const props = selectedNode.data.props
   const layoutMode = props.layoutMode || 'vertical'
+  const pageSizePreset = getPageSizePreset(props)
+  const isA4Size = pageSizePreset === 'a4'
   const isAutoLayout = layoutMode !== 'free'
   const isHorizontal = layoutMode === 'horizontal'
   const isGrid = layoutMode === 'grid'
@@ -70,6 +150,38 @@ export function RootPageInspector({ actions, selectedNode }) {
   const setProp = (key, value) => {
     actions.history.throttle(400).setProp(selectedNode.id, (draft) => {
       draft[key] = value
+    })
+  }
+
+  const setProps = (update) => {
+    actions.history.throttle(400).setProp(selectedNode.id, update)
+  }
+
+  const setPageSizePreset = (preset) => {
+    setProps((draft) => {
+      draft.pageSizePreset = preset
+      if (preset === 'custom') return
+
+      const size = pageSizePresets[preset]
+      if (!size) return
+
+      draft.width = size.width
+      draft.height = size.height
+    })
+  }
+
+  const setCustomSize = (key, value) => {
+    setProps((draft) => {
+      if (pageSizePreset === 'custom') {
+        draft.pageSizePreset = 'custom'
+        draft[key] = value
+        return
+      }
+
+      const nextSize = getScaledPageSize(pageSizePreset, key, value)
+      draft.pageSizePreset = pageSizePreset
+      draft.width = nextSize.width
+      draft.height = nextSize.height
     })
   }
 
@@ -83,9 +195,28 @@ export function RootPageInspector({ actions, selectedNode }) {
       </div>
 
       <InspectorSection title="Page" icon={Box}>
+        <Field label="Size preset">
+          <SelectControl label="Page size preset" value={pageSizePreset} options={pageSizeOptions} onChange={setPageSizePreset} />
+        </Field>
         <div className="control-grid two">
-          <NumberControl caption="Width" label="W" value={props.width} min={320} max={1920} onChange={(value) => setProp('width', value)} />
-          <NumberControl caption="Height" label="H" value={props.height} min={320} max={3200} onChange={(value) => setProp('height', value)} />
+          <NumberControl
+            caption="Width"
+            label="W"
+            value={props.width}
+            min={pageSizeLimits.minWidth}
+            max={pageSizeLimits.maxWidth}
+            disabled={isA4Size}
+            onChange={(value) => setCustomSize('width', value)}
+          />
+          <NumberControl
+            caption="Height"
+            label="H"
+            value={props.height}
+            min={pageSizeLimits.minHeight}
+            max={pageSizeLimits.maxHeight}
+            disabled={isA4Size}
+            onChange={(value) => setCustomSize('height', value)}
+          />
         </div>
       </InspectorSection>
 

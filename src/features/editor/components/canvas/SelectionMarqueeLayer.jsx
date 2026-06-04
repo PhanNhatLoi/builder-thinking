@@ -38,6 +38,10 @@ function selectNodes(actions, selectedIds) {
   })
 }
 
+function getSurfaceNodeId(surface) {
+  return surface.dataset.nodeId || surface.closest?.('.node-shell')?.dataset.nodeId
+}
+
 export function SelectionMarqueeLayer({ activeTool }) {
   const [draft, setDraft] = useState(null)
   const latestRef = useRef(null)
@@ -105,9 +109,10 @@ export function SelectionMarqueeLayer({ activeTool }) {
       event.stopPropagation()
 
       const rect = getRect(start, getClientPoint(event))
+      const surfaceNodeId = getSurfaceNodeId(surface)
       const selectedIds =
         rect.width < 3 && rect.height < 3
-          ? []
+          ? [surfaceNodeId].filter(Boolean)
           : Array.from(surface.querySelectorAll('.node-shell'))
               .filter((node) => node.closest('.layout-surface') === surface)
               .filter((node) => intersects(rect, node.getBoundingClientRect()))

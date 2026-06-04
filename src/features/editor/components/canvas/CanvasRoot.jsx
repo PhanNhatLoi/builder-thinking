@@ -15,6 +15,7 @@ const justifyContentMap = {
 }
 
 export function CanvasRoot({
+  pageSizePreset = 'a4',
   width = 860,
   height = 1040,
   background = '#ffffff',
@@ -94,6 +95,7 @@ export function CanvasRoot({
 CanvasRoot.craft = {
   displayName: 'Page',
   props: {
+    pageSizePreset: 'a4',
     width: 860,
     height: 1040,
     background: '#ffffff',
