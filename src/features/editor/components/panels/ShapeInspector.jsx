@@ -20,7 +20,7 @@ const shapeOptions = [
 const imageSizeOptions = [
   { value: 'cover', label: 'Cover' },
   { value: 'contain', label: 'Contain' },
-  { value: '100% 100%', label: 'Stretch' },
+  { value: '100% 100%', label: 'Fill' },
   { value: 'auto', label: 'Original' },
 ]
 
@@ -30,7 +30,23 @@ const imagePositionOptions = [
   { value: 'right', label: 'Right' },
   { value: 'bottom', label: 'Bottom' },
   { value: 'left', label: 'Left' },
+  { value: 'top left', label: 'Top left' },
+  { value: 'top right', label: 'Top right' },
+  { value: 'bottom left', label: 'Bottom left' },
+  { value: 'bottom right', label: 'Bottom right' },
 ]
+
+const positionPresetMap = {
+  center: [50, 50],
+  top: [50, 0],
+  right: [100, 50],
+  bottom: [50, 100],
+  left: [0, 50],
+  'top left': [0, 0],
+  'top right': [100, 0],
+  'bottom left': [0, 100],
+  'bottom right': [100, 100],
+}
 
 function NumberControl({ caption, label, value, min, max, suffix, disabled = false, onChange }) {
   return (
@@ -44,9 +60,12 @@ function NumberControl({ caption, label, value, min, max, suffix, disabled = fal
 export function ShapeInspector({ actions, selectedNode }) {
   const props = selectedNode.data.props
   const imageInputRef = useRef(null)
+  const imageInputId = `shape-image-import-${selectedNode.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
   const shapeType = props.shapeType || 'rectangle'
   const isImage = shapeType === 'image'
   const isLine = shapeType === 'line'
+  const usesImageFill = !isLine && (isImage || props.fillType === 'image')
+  const usesColorFill = !isLine && !usesImageFill
   const { parentLayoutMode } = useEditor((state) => ({
     parentLayoutMode: selectedNode.data.parent ? state.nodes[selectedNode.data.parent]?.data.props.layoutMode : null,
   }))
@@ -65,19 +84,38 @@ export function ShapeInspector({ actions, selectedNode }) {
   }
 
   const importLocalImage = (file) => {
-    if (!file || !file.type.startsWith('image/')) return
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      window.alert('File này không phải là ảnh hợp lệ.')
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = () => {
       setProps({
-        shapeType: 'image',
+        fillType: 'image',
         imageSrc: String(reader.result || ''),
         imagePosition: props.imagePosition || 'center',
+        imagePositionX: props.imagePositionX ?? 50,
+        imagePositionY: props.imagePositionY ?? 50,
         imageRepeat: props.imageRepeat || 'no-repeat',
         imageSize: props.imageSize || 'cover',
       })
     }
+    reader.onerror = () => {
+      window.alert('Không thể đọc file ảnh này.')
+    }
     reader.readAsDataURL(file)
+  }
+
+  const setImagePositionPreset = (value) => {
+    const [imagePositionX, imagePositionY] = positionPresetMap[value] || positionPresetMap.center
+    setProps({
+      imagePosition: value,
+      imagePositionX,
+      imagePositionY,
+    })
   }
 
   return (
@@ -117,9 +155,21 @@ export function ShapeInspector({ actions, selectedNode }) {
           {!isLine && <NumberControl caption="Radius" label="R" value={props.radius ?? 0} min={0} max={50} onChange={(value) => setProp('radius', value)} />}
         </div>
         {!isLine && (
-          <Field label="Fill">
-            <ColorControl value={props.fill || '#38bdf8'} onChange={(value) => setProp('fill', value)} />
-          </Field>
+          <>
+            <Field label="Fill type">
+              <div className="layout-toggle">
+                <button type="button" className={usesColorFill ? 'active' : ''} onClick={() => setProp('fillType', 'color')} disabled={isImage}>
+                  Color
+                </button>
+                <button type="button" className={usesImageFill ? 'active' : ''} onClick={() => setProp('fillType', 'image')}>
+                  Image
+                </button>
+              </div>
+            </Field>
+            {usesColorFill && <Field label="Fill">
+              <ColorControl value={props.fill || '#38bdf8'} onChange={(value) => setProp('fill', value)} />
+            </Field>}
+          </>
         )}
         <div className="control-grid two">
           <NumberControl caption="Stroke" label="S" value={props.strokeWidth ?? 0} min={0} max={32} onChange={(value) => setProp('strokeWidth', value)} />
@@ -145,27 +195,28 @@ export function ShapeInspector({ actions, selectedNode }) {
         </InspectorSection>
       )}
 
-      {isImage && (
+      {usesImageFill && (
         <InspectorSection title="Image" icon={Image}>
           <Field label="Image URL">
             <TextInput value={props.imageSrc || ''} placeholder="https://..." onChange={(value) => setProp('imageSrc', value)} />
           </Field>
           <Field label="Local image">
             <input
+              id={imageInputId}
               ref={imageInputRef}
               type="file"
               accept="image/*"
-              hidden
+              className="visually-hidden"
               onChange={(event) => {
                 importLocalImage(event.target.files?.[0])
                 event.target.value = ''
               }}
             />
             <div className="layout-toggle">
-              <button type="button" onClick={() => imageInputRef.current?.click()}>
+              <label className="toggle-file-button" htmlFor={imageInputId}>
                 <Upload size={14} />
                 Import local
-              </button>
+              </label>
               {props.imageSrc && (
                 <button type="button" onClick={() => setProp('imageSrc', '')}>
                   Clear
@@ -178,9 +229,16 @@ export function ShapeInspector({ actions, selectedNode }) {
               <SelectControl label="Image size" value={props.imageSize || 'cover'} options={imageSizeOptions} onChange={(value) => setProp('imageSize', value)} />
             </Field>
             <Field label="Position">
-              <SelectControl label="Image position" value={props.imagePosition || 'center'} options={imagePositionOptions} onChange={(value) => setProp('imagePosition', value)} />
+              <SelectControl label="Image position" value={props.imagePosition || 'center'} options={imagePositionOptions} onChange={setImagePositionPreset} />
             </Field>
           </div>
+          <div className="control-grid two">
+            <NumberControl caption="Position X" label="X" value={props.imagePositionX ?? 50} min={0} max={100} suffix="%" onChange={(value) => setProp('imagePositionX', value)} />
+            <NumberControl caption="Position Y" label="Y" value={props.imagePositionY ?? 50} min={0} max={100} suffix="%" onChange={(value) => setProp('imagePositionY', value)} />
+          </div>
+          {['cover', 'auto'].includes(props.imageSize || 'cover') && (
+            <p className="inspector-note">Hold Shift and drag the image on canvas to adjust the crop.</p>
+          )}
           <label className="inspector-checkbox">
             <input
               type="checkbox"

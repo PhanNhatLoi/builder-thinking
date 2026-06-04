@@ -404,6 +404,34 @@ Common examples:
 
 Use `layoutMode: "free"` for visual compositions with exact placement. Use `vertical`, `horizontal`, or `grid` only when children should reflow automatically.
 
+### Image fill and crop rules
+
+Sections and closed shapes can use an image as their fill.
+
+Use these image sizing values:
+
+- `"cover"`: crop the image to fully cover the frame.
+- `"contain"`: show the full image inside the frame.
+- `"100% 100%"`: fill/stretch the image to the frame size.
+- `"auto"`: render the image at its original size.
+
+For crop-like behavior, use `"cover"` and control the visible crop area with percentage position props:
+
+```json
+{
+  "backgroundFill": "image",
+  "backgroundImage": "data:image/png;base64,...",
+  "backgroundSize": "cover",
+  "backgroundPosition": "50% 50%",
+  "backgroundPositionX": 50,
+  "backgroundPositionY": 50
+}
+```
+
+`backgroundPositionX` and `backgroundPositionY` are percentages from `0` to `100`. Center crop is `50, 50`. Top-left crop is `0, 0`. Bottom-right crop is `100, 100`.
+
+For shapes, use the equivalent `imagePositionX` and `imagePositionY` props. The editor lets users adjust crop by holding Shift and dragging the image inside the selected frame when the image size is `cover` or `auto`. Do not describe crop dragging for `contain`, because `contain` shows the whole image.
+
 ## Components
 
 ### Section
@@ -416,6 +444,8 @@ Use sections for frames, cards, panels, containers, backgrounds, and nested layo
   "backgroundFill": "color",
   "backgroundImage": "",
   "backgroundPosition": "center",
+  "backgroundPositionX": 50,
+  "backgroundPositionY": 50,
   "backgroundRepeat": "no-repeat",
   "backgroundSize": "cover",
   "opacity": 100,
@@ -482,6 +512,7 @@ Use shapes for rectangles, ellipses, polygons, lines, and image frames.
 ```json
 {
   "shapeType": "rectangle",
+  "fillType": "color",
   "fill": "#38bdf8",
   "opacity": 100,
   "strokeColor": "#0284c7",
@@ -491,6 +522,8 @@ Use shapes for rectangles, ellipses, polygons, lines, and image frames.
   "points": "50,4 96,96 4,96",
   "imageSrc": "",
   "imagePosition": "center",
+  "imagePositionX": 50,
+  "imagePositionY": 50,
   "imageRepeat": "no-repeat",
   "imageSize": "cover",
   "radius": 0,
@@ -505,6 +538,23 @@ Use shapes for rectangles, ellipses, polygons, lines, and image frames.
 Supported `shapeType`: `rectangle`, `ellipse`, `polygon`, `line`, `image`.
 
 For transparent fill, use `"fill": "transparent"`.
+
+For closed shapes with image fill, set:
+
+```json
+{
+  "shapeType": "ellipse",
+  "fillType": "image",
+  "fill": "#ffffff",
+  "imageSrc": "data:image/png;base64,...",
+  "imageSize": "cover",
+  "imagePosition": "50% 50%",
+  "imagePositionX": 50,
+  "imagePositionY": 50
+}
+```
+
+This works for `rectangle`, `ellipse`, `polygon`, and `image`. It does not apply to `line`, because lines are open shapes.
 
 ### SvgIconBlock
 

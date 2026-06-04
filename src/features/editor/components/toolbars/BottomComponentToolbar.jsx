@@ -12,11 +12,24 @@ const tools = [
   ['shape-image', ImageIcon, 'Image shape'],
 ]
 
+const imageToolEventName = 'builder-thinking:open-image-tool'
+
 export function BottomComponentToolbar({ activeTool, onToolChange }) {
   return (
     <div className="bottom-tools" aria-label="Components toolbar">
       {tools.map(([tool, Icon, label]) => (
-        <ComponentTool key={tool} active={activeTool === tool} icon={Icon} label={label} onClick={() => onToolChange(tool)} />
+        <ComponentTool
+          key={tool}
+          active={activeTool === tool}
+          icon={Icon}
+          label={label}
+          onClick={() => {
+            onToolChange(tool)
+            if (tool === 'shape-image') {
+              window.dispatchEvent(new Event(imageToolEventName))
+            }
+          }}
+        />
       ))}
     </div>
   )

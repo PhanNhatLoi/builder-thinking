@@ -57,7 +57,7 @@ const gridFlowOptions = [
 const backgroundSizeOptions = [
   { value: 'cover', label: 'Cover' },
   { value: 'contain', label: 'Contain' },
-  { value: '100% 100%', label: 'Stretch' },
+  { value: '100% 100%', label: 'Fill' },
   { value: 'auto', label: 'Original' },
 ]
 
@@ -72,6 +72,18 @@ const backgroundPositionOptions = [
   { value: 'bottom left', label: 'Bottom left' },
   { value: 'bottom right', label: 'Bottom right' },
 ]
+
+const positionPresetMap = {
+  center: [50, 50],
+  top: [50, 0],
+  right: [100, 50],
+  bottom: [50, 100],
+  left: [0, 50],
+  'top left': [0, 0],
+  'top right': [100, 0],
+  'bottom left': [0, 100],
+  'bottom right': [100, 100],
+}
 
 function propValue(props, key, fallbackKey, fallbackValue = 0) {
   return props[key] ?? props[fallbackKey] ?? fallbackValue
@@ -89,6 +101,7 @@ function NumberControl({ caption, label, title = caption, value, min, max, suffi
 export function SectionInspector({ actions, selectedNode }) {
   const props = selectedNode.data.props
   const imageInputRef = useRef(null)
+  const imageInputId = `section-background-import-${selectedNode.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
   const layoutMode = props.layoutMode || 'free'
   const isAutoLayout = layoutMode !== 'free'
   const isHorizontal = layoutMode === 'horizontal'
@@ -111,7 +124,12 @@ export function SectionInspector({ actions, selectedNode }) {
   }
 
   const importLocalImage = (file) => {
-    if (!file || !file.type.startsWith('image/')) return
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      window.alert('File này không phải là ảnh hợp lệ.')
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = () => {
@@ -121,9 +139,23 @@ export function SectionInspector({ actions, selectedNode }) {
         backgroundRepeat: props.backgroundRepeat || 'no-repeat',
         backgroundSize: props.backgroundSize || 'cover',
         backgroundPosition: props.backgroundPosition || 'center',
+        backgroundPositionX: props.backgroundPositionX ?? 50,
+        backgroundPositionY: props.backgroundPositionY ?? 50,
       })
     }
+    reader.onerror = () => {
+      window.alert('Không thể đọc file ảnh này.')
+    }
     reader.readAsDataURL(file)
+  }
+
+  const setImagePositionPreset = (value) => {
+    const [backgroundPositionX, backgroundPositionY] = positionPresetMap[value] || positionPresetMap.center
+    setProps({
+      backgroundPosition: value,
+      backgroundPositionX,
+      backgroundPositionY,
+    })
   }
 
   return (
@@ -238,9 +270,9 @@ export function SectionInspector({ actions, selectedNode }) {
             </button>
           </div>
         </Field>
-        <Field label="Background">
+        {(props.backgroundFill || 'color') === 'color' && <Field label="Background">
           <ColorControl value={props.background || '#f8fafc'} onChange={(value) => setProp('background', value)} />
-        </Field>
+        </Field>}
         {props.backgroundFill === 'image' && (
           <>
             <Field label="Image URL">
@@ -252,20 +284,21 @@ export function SectionInspector({ actions, selectedNode }) {
             </Field>
             <Field label="Local image">
               <input
+                id={imageInputId}
                 ref={imageInputRef}
                 type="file"
                 accept="image/*"
-                hidden
+                className="visually-hidden"
                 onChange={(event) => {
                   importLocalImage(event.target.files?.[0])
                   event.target.value = ''
                 }}
               />
               <div className="layout-toggle">
-                <button type="button" onClick={() => imageInputRef.current?.click()}>
+                <label className="toggle-file-button" htmlFor={imageInputId}>
                   <Upload size={14} />
                   Import local
-                </button>
+                </label>
                 {props.backgroundImage && (
                   <button type="button" onClick={() => setProp('backgroundImage', '')}>
                     Clear
@@ -287,10 +320,17 @@ export function SectionInspector({ actions, selectedNode }) {
                   label="Background position"
                   value={props.backgroundPosition || 'center'}
                   options={backgroundPositionOptions}
-                  onChange={(value) => setProp('backgroundPosition', value)}
+                  onChange={setImagePositionPreset}
                 />
               </Field>
             </div>
+            <div className="control-grid two">
+              <NumberControl caption="Position X" label="X" value={props.backgroundPositionX ?? 50} min={0} max={100} suffix="%" onChange={(value) => setProp('backgroundPositionX', value)} />
+              <NumberControl caption="Position Y" label="Y" value={props.backgroundPositionY ?? 50} min={0} max={100} suffix="%" onChange={(value) => setProp('backgroundPositionY', value)} />
+            </div>
+            {['cover', 'auto'].includes(props.backgroundSize || 'cover') && (
+              <p className="inspector-note">Hold Shift and drag the image on canvas to adjust the crop.</p>
+            )}
             <label className="inspector-checkbox">
               <input
                 type="checkbox"

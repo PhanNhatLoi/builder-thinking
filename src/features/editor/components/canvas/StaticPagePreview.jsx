@@ -32,6 +32,13 @@ function escapeImageUrl(value = '') {
   return String(value).replaceAll('"', '%22')
 }
 
+function resolveImagePosition(position, positionX, positionY) {
+  if (Number.isFinite(positionX) && Number.isFinite(positionY)) {
+    return `${positionX}% ${positionY}%`
+  }
+  return position || 'center'
+}
+
 function layoutStyle(props = {}) {
   const layoutMode = props.layoutMode || 'free'
 
@@ -115,9 +122,9 @@ function renderSection(nodes, id, node) {
         style={{
           ...layoutStyle(props),
           alignItems: props.layoutMode === 'free' ? undefined : alignItemsMap[props.alignItems || 'stretch'],
-          backgroundColor: props.background || '#f8fafc',
+          backgroundColor: props.backgroundFill === 'image' ? 'transparent' : props.background || '#f8fafc',
           backgroundImage: hasImageFill ? `url("${escapeImageUrl(props.backgroundImage)}")` : undefined,
-          backgroundPosition: props.backgroundPosition || 'center',
+          backgroundPosition: resolveImagePosition(props.backgroundPosition, props.backgroundPositionX, props.backgroundPositionY),
           backgroundRepeat: props.backgroundRepeat || 'no-repeat',
           backgroundSize: props.backgroundSize || 'cover',
           borderColor: props.borderColor || '#dbeafe',
@@ -186,33 +193,47 @@ function renderImage(id, node) {
 function renderShape(id, node) {
   const props = node.props || {}
   const strokeDasharray = props.strokeStyle === 'dashed' ? '8 6' : undefined
+  const shapeType = props.shapeType || 'rectangle'
+  const isLine = shapeType === 'line'
+  const usesImageMode = !isLine && (props.fillType === 'image' || shapeType === 'image')
+  const hasImageFill = usesImageMode && props.imageSrc
+  const shapeFill = usesImageMode ? 'transparent' : props.fill || '#38bdf8'
+  const polygonClipPath = `polygon(${(props.points || '50,4 96,96 4,96')
+    .split(' ')
+    .map((point) => {
+      const [pointX, pointY] = point.split(',')
+      return `${pointX}% ${pointY}%`
+    })
+    .join(', ')})`
+  const imageClipStyle =
+    shapeType === 'ellipse'
+      ? { borderRadius: '999px' }
+      : shapeType === 'polygon'
+        ? { clipPath: polygonClipPath }
+        : { borderRadius: props.radius || 0 }
 
   return (
     <div key={id} className="static-node-shell" style={shellStyle(props)}>
-      {props.shapeType === 'image' ? (
+      {hasImageFill && (
         <div
-          className="shape-image"
+          className="shape-image-fill"
           style={{
-            backgroundColor: props.fill || '#38bdf8',
-            backgroundImage: props.imageSrc ? `url("${escapeImageUrl(props.imageSrc)}")` : undefined,
-            backgroundPosition: props.imagePosition || 'center',
+            ...imageClipStyle,
+            backgroundColor: 'transparent',
+            backgroundImage: `url("${escapeImageUrl(props.imageSrc)}")`,
+            backgroundPosition: resolveImagePosition(props.imagePosition, props.imagePositionX, props.imagePositionY),
             backgroundRepeat: props.imageRepeat || 'no-repeat',
             backgroundSize: props.imageSize || 'cover',
-            borderColor: props.strokeColor || '#0284c7',
-            borderRadius: props.radius || 0,
-            borderStyle: props.strokeStyle || 'solid',
-            borderWidth: props.strokeWidth || 0,
             opacity: (props.opacity ?? 100) / 100,
           }}
         />
-      ) : (
-        <svg className="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: (props.opacity ?? 100) / 100 }}>
-          {props.shapeType === 'ellipse' && <ellipse cx="50" cy="50" rx="48" ry="48" fill={props.fill || '#38bdf8'} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
-          {props.shapeType === 'polygon' && <polygon points={props.points || '50,4 96,96 4,96'} fill={props.fill || '#38bdf8'} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
-          {props.shapeType === 'line' && <line x1="0" y1={props.lineDirection === 'down' ? '0' : '100'} x2="100" y2={props.lineDirection === 'down' ? '100' : '0'} fill="none" stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeWidth={Math.max(props.strokeWidth || 0, 2)} vectorEffect="non-scaling-stroke" />}
-          {(props.shapeType || 'rectangle') === 'rectangle' && <rect x="1" y="1" width="98" height="98" rx={props.radius || 0} ry={props.radius || 0} fill={props.fill || '#38bdf8'} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
-        </svg>
       )}
+      <svg className={`shape-svg ${hasImageFill ? 'shape-stroke-layer' : ''}`} viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: (props.opacity ?? 100) / 100 }}>
+        {shapeType === 'ellipse' && <ellipse cx="50" cy="50" rx="48" ry="48" fill={shapeFill} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
+        {shapeType === 'polygon' && <polygon points={props.points || '50,4 96,96 4,96'} fill={shapeFill} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
+        {shapeType === 'line' && <line x1="0" y1={props.lineDirection === 'down' ? '0' : '100'} x2="100" y2={props.lineDirection === 'down' ? '100' : '0'} fill="none" stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeWidth={Math.max(props.strokeWidth || 0, 2)} vectorEffect="non-scaling-stroke" />}
+        {(shapeType === 'rectangle' || shapeType === 'image') && <rect x="1" y="1" width="98" height="98" rx={props.radius || 0} ry={props.radius || 0} fill={shapeFill} stroke={props.strokeColor || '#0284c7'} strokeDasharray={strokeDasharray} strokeWidth={props.strokeWidth || 0} vectorEffect="non-scaling-stroke" />}
+      </svg>
     </div>
   )
 }

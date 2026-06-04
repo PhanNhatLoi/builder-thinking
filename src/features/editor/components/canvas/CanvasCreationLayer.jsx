@@ -13,7 +13,7 @@ const minimumSize = {
   'shape-image': { width: 80, height: 48 },
 }
 
-const pointTools = new Set(['shape-line', 'shape-polygon', 'shape-image'])
+const imageToolEventName = 'builder-thinking:open-image-tool'
 
 function getElementScale(element) {
   if (!element?.offsetWidth) return 1
@@ -129,16 +129,44 @@ function getPolygonProps(points) {
   }
 }
 
-function getImageSize(naturalWidth, naturalHeight, surface, point) {
+function getImageSize(naturalWidth, naturalHeight, surface) {
   const surfaceRect = surface.getBoundingClientRect()
   const scale = getElementScale(surface)
-  const availableWidth = Math.max(surfaceRect.width / scale - point.x, 80)
-  const availableHeight = Math.max(surfaceRect.height / scale - point.y, 80)
+  const availableWidth = Math.max(surfaceRect.width / scale * 0.55, 80)
+  const availableHeight = Math.max(surfaceRect.height / scale * 0.55, 80)
   const ratio = Math.min(1, availableWidth / naturalWidth, availableHeight / naturalHeight)
 
   return {
     width: Math.max(24, Math.round(naturalWidth * ratio)),
     height: Math.max(24, Math.round(naturalHeight * ratio)),
+  }
+}
+
+function clampRectToSurface(rect, surface) {
+  const surfaceWidth = surface.offsetWidth || rect.width
+  const surfaceHeight = surface.offsetHeight || rect.height
+
+  return {
+    ...rect,
+    x: Math.round(Math.max(0, Math.min(rect.x, surfaceWidth - rect.width))),
+    y: Math.round(Math.max(0, Math.min(rect.y, surfaceHeight - rect.height))),
+  }
+}
+
+function getImagePlacement() {
+  const surface =
+    document.querySelector('.page-workbench.active .page-canvas.layout-surface') ||
+    document.querySelector('.page-canvas.layout-surface')
+
+  if (!surface) return null
+
+  return {
+    point: {
+      x: (surface.offsetWidth || 0) / 2,
+      y: (surface.offsetHeight || 0) / 2,
+    },
+    surface,
+    parentId: surface.dataset.nodeId || 'ROOT',
   }
 }
 
@@ -169,6 +197,7 @@ export function CanvasCreationLayer({ activeTool, onComplete }) {
   const fileInputRef = useRef(null)
   const latestRef = useRef(null)
   const pendingImageRef = useRef(null)
+  const lastImageOpenAtRef = useRef(0)
   const pointDraftRef = useRef(null)
   const parentIdRef = useRef('ROOT')
   const surfaceRef = useRef(null)
@@ -196,11 +225,39 @@ export function CanvasCreationLayer({ activeTool, onComplete }) {
     : null
 
   useEffect(() => {
+    const openImagePicker = () => {
+      const placement = getImagePlacement()
+      if (!placement) {
+        latestRef.current.onComplete?.()
+        return
+      }
+
+      pendingImageRef.current = placement
+      lastImageOpenAtRef.current = Date.now()
+      fileInputRef.current?.click()
+      latestRef.current.onComplete?.()
+    }
+
+    window.addEventListener(imageToolEventName, openImagePicker)
+    return () => window.removeEventListener(imageToolEventName, openImagePicker)
+  }, [])
+
+  useEffect(() => {
     if (!isCreateTool) {
       setDraft(null)
       setPointDraft(null)
       pointDraftRef.current = null
       return undefined
+    }
+
+    if (activeTool === 'shape-image') {
+      const frame = requestAnimationFrame(() => {
+        if (Date.now() - lastImageOpenAtRef.current > 500) {
+          const event = new Event(imageToolEventName)
+          window.dispatchEvent(event)
+        }
+      })
+      return () => cancelAnimationFrame(frame)
     }
 
     const updatePointDraft = (nextDraft) => {
@@ -230,16 +287,6 @@ export function CanvasCreationLayer({ activeTool, onComplete }) {
 
       surfaceRef.current = surface
       parentIdRef.current = surface.dataset.nodeId || surface.closest('.node-shell')?.dataset.nodeId || 'ROOT'
-
-      if (activeTool === 'shape-image') {
-        pendingImageRef.current = {
-          point: getPoint(surface, event),
-          surface,
-          parentId: parentIdRef.current,
-        }
-        fileInputRef.current?.click()
-        return
-      }
 
       if (activeTool === 'shape-line') {
         const surfacePoint = getPoint(surface, event)
@@ -369,18 +416,21 @@ export function CanvasCreationLayer({ activeTool, onComplete }) {
     reader.onload = () => {
       const image = new Image()
       image.onload = () => {
-        const size = getImageSize(image.naturalWidth || 240, image.naturalHeight || 160, placement.surface, placement.point)
+        const size = getImageSize(image.naturalWidth || 240, image.naturalHeight || 160, placement.surface)
         const rect = {
-          x: Math.round(placement.point.x),
-          y: Math.round(placement.point.y),
+          x: Math.round(placement.point.x - size.width / 2),
+          y: Math.round(placement.point.y - size.height / 2),
           width: size.width,
           height: size.height,
         }
         const latest = latestRef.current
-        const layoutProps = getLayoutProps(latest.nodes, placement.parentId, rect)
+        const layoutProps = getLayoutProps(latest.nodes, placement.parentId, clampRectToSurface(rect, placement.surface))
         const element = createToolElement('shape-image', {
           ...layoutProps,
+          fillType: 'image',
           imageSrc: String(reader.result || ''),
+          imagePositionX: 50,
+          imagePositionY: 50,
           imageSize: 'cover',
           shapeType: 'image',
         })

@@ -19,11 +19,75 @@ const justifyContentMap = {
   'space-between': 'space-between',
 }
 
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function resolveImagePosition(position, positionX, positionY) {
+  if (Number.isFinite(positionX) && Number.isFinite(positionY)) {
+    return `${positionX}% ${positionY}%`
+  }
+  return position || 'center'
+}
+
+function supportsImageCrop(size) {
+  return size === 'cover' || size === 'auto'
+}
+
+function useImageCropDrag({ actions, enabled, positionX = 50, positionY = 50 }) {
+  const [previewActive, setPreviewActive] = useState(false)
+  const handleCropDrag = useCallback((event) => {
+    if (!enabled || !event.shiftKey || event.button !== 0 || event.target.closest('button, input, textarea, select')) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    setPreviewActive(true)
+
+    const startX = event.clientX
+    const startY = event.clientY
+    const rect = event.currentTarget.getBoundingClientRect()
+    const startPositionX = Number.isFinite(positionX) ? positionX : 50
+    const startPositionY = Number.isFinite(positionY) ? positionY : 50
+
+    const handleMove = (moveEvent) => {
+      const nextX = startPositionX - ((moveEvent.clientX - startX) / Math.max(rect.width, 1)) * 100
+      const nextY = startPositionY - ((moveEvent.clientY - startY) / Math.max(rect.height, 1)) * 100
+      actions.setProp((draft) => {
+        if ('backgroundPositionX' in draft || 'backgroundImage' in draft) {
+          draft.backgroundPositionX = clampPercent(nextX)
+          draft.backgroundPositionY = clampPercent(nextY)
+          draft.backgroundPosition = `${draft.backgroundPositionX}% ${draft.backgroundPositionY}%`
+        } else {
+          draft.imagePositionX = clampPercent(nextX)
+          draft.imagePositionY = clampPercent(nextY)
+          draft.imagePosition = `${draft.imagePositionX}% ${draft.imagePositionY}%`
+        }
+      })
+    }
+
+    const handleUp = () => {
+      setPreviewActive(false)
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }, [actions, enabled, positionX, positionY])
+
+  return {
+    cropPreviewActive: previewActive,
+    handleCropDrag,
+  }
+}
+
 export function Section({
   background = '#f8fafc',
   backgroundFill = 'color',
   backgroundImage = '',
   backgroundPosition = 'center',
+  backgroundPositionX,
+  backgroundPositionY,
   backgroundRepeat = 'no-repeat',
   backgroundSize = 'cover',
   opacity = 100,
@@ -50,7 +114,23 @@ export function Section({
   children,
   ...shellProps
 }) {
+  const {
+    actions,
+    selected,
+  } = useNode((node) => ({
+    selected: node.events.selected,
+  }))
   const hasImageFill = backgroundFill === 'image' && backgroundImage.trim()
+  const cropEnabled = Boolean(selected && hasImageFill && supportsImageCrop(backgroundSize))
+  const {
+    cropPreviewActive,
+    handleCropDrag,
+  } = useImageCropDrag({
+    actions,
+    enabled: cropEnabled,
+    positionX: backgroundPositionX,
+    positionY: backgroundPositionY,
+  })
   const layoutStyle =
     layoutMode === 'horizontal'
       ? { display: 'flex', flexDirection: 'row', flexWrap: wrap ? 'wrap' : 'nowrap' }
@@ -70,14 +150,15 @@ export function Section({
   return (
     <EditableShell className="section-block" {...shellProps}>
       <section
-        className={`layout-surface layout-${layoutMode}`}
+        className={`layout-surface layout-${layoutMode} ${cropEnabled ? 'can-shift-crop-image' : ''} ${cropPreviewActive ? 'is-cropping-image' : ''}`}
+        onMouseDown={handleCropDrag}
         style={{
           ...layoutStyle,
           position: 'relative',
           height: '100%',
-          backgroundColor: background,
+          backgroundColor: backgroundFill === 'image' ? 'transparent' : background,
           backgroundImage: hasImageFill ? `url("${backgroundImage.replaceAll('"', '%22')}")` : undefined,
-          backgroundPosition,
+          backgroundPosition: resolveImagePosition(backgroundPosition, backgroundPositionX, backgroundPositionY),
           backgroundRepeat,
           backgroundSize,
           opacity: opacity / 100,
@@ -89,7 +170,7 @@ export function Section({
           rowGap: gapY ?? gap,
           alignItems: layoutMode === 'free' ? undefined : alignItemsMap[alignItems],
           justifyContent: layoutMode === 'free' ? undefined : justifyContentMap[justifyContent],
-          overflow: clipContent ? 'hidden' : 'visible',
+          overflow: cropPreviewActive ? 'visible' : clipContent ? 'hidden' : 'visible',
           borderRadius: radius,
           borderWidth,
           borderColor,
@@ -109,6 +190,8 @@ Section.craft = {
     backgroundFill: 'color',
     backgroundImage: '',
     backgroundPosition: 'center',
+    backgroundPositionX: 50,
+    backgroundPositionY: 50,
     backgroundRepeat: 'no-repeat',
     backgroundSize: 'cover',
     opacity: 100,
@@ -362,6 +445,7 @@ ImageBlock.craft = {
 
 export function ShapeBlock({
   shapeType = 'rectangle',
+  fillType = 'color',
   fill = '#38bdf8',
   opacity = 100,
   strokeColor = '#0284c7',
@@ -371,6 +455,8 @@ export function ShapeBlock({
   points = '50,4 96,96 4,96',
   imageSrc = '',
   imagePosition = 'center',
+  imagePositionX,
+  imagePositionY,
   imageRepeat = 'no-repeat',
   imageSize = 'cover',
   radius = 0,
@@ -380,13 +466,45 @@ export function ShapeBlock({
   width = 180,
   height = 120,
 }) {
+  const {
+    actions,
+    selected,
+  } = useNode((node) => ({
+    selected: node.events.selected,
+  }))
   const isImage = shapeType === 'image'
   const isLine = shapeType === 'line'
+  const usesImageMode = !isLine && (fillType === 'image' || isImage)
+  const hasImageFill = !isLine && Boolean(imageSrc) && (fillType === 'image' || isImage)
+  const shapeFill = usesImageMode ? 'transparent' : fill
   const strokeDasharray = strokeStyle === 'dashed' ? '8 6' : undefined
+  const cropEnabled = Boolean(selected && hasImageFill && supportsImageCrop(imageSize))
+  const {
+    cropPreviewActive,
+    handleCropDrag,
+  } = useImageCropDrag({
+    actions,
+    enabled: cropEnabled,
+    positionX: imagePositionX,
+    positionY: imagePositionY,
+  })
+  const polygonClipPath = `polygon(${points
+    .split(' ')
+    .map((point) => {
+      const [pointX, pointY] = point.split(',')
+      return `${pointX}% ${pointY}%`
+    })
+    .join(', ')})`
+  const imageClipStyle =
+    shapeType === 'ellipse'
+      ? { borderRadius: '999px' }
+      : shapeType === 'polygon'
+        ? { clipPath: polygonClipPath }
+        : { borderRadius: radius }
 
   return (
     <EditableShell
-      className="shape-shell"
+      className={`shape-shell ${cropEnabled ? 'can-shift-crop-image' : ''} ${cropPreviewActive ? 'is-cropping-image' : ''}`}
       layout={layout}
       minResizeHeight={isLine ? 1 : 12}
       minResizeWidth={isLine ? 1 : 12}
@@ -395,49 +513,49 @@ export function ShapeBlock({
       width={width}
       height={height}
     >
-      {isImage ? (
+      {hasImageFill && (
         <div
-          className="shape-image"
+          className="shape-image-fill"
+          onMouseDown={handleCropDrag}
           style={{
-            backgroundColor: fill,
-            backgroundImage: imageSrc ? `url("${imageSrc.replaceAll('"', '%22')}")` : undefined,
-            backgroundPosition: imagePosition,
+            ...imageClipStyle,
+            backgroundColor: 'transparent',
+            backgroundImage: `url("${imageSrc.replaceAll('"', '%22')}")`,
+            backgroundPosition: resolveImagePosition(imagePosition, imagePositionX, imagePositionY),
             backgroundRepeat: imageRepeat,
             backgroundSize: imageSize,
-            borderColor: strokeColor,
-            borderRadius: radius,
-            borderStyle: strokeStyle,
-            borderWidth: strokeWidth,
             opacity: opacity / 100,
           }}
         />
-      ) : (
+      )}
+      {isLine ? (
         <svg className="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: opacity / 100 }}>
+          <line
+            x1="0"
+            y1={lineDirection === 'down' ? '0' : '100'}
+            x2="100"
+            y2={lineDirection === 'down' ? '100' : '0'}
+            fill="none"
+            stroke={strokeColor}
+            strokeDasharray={strokeDasharray}
+            strokeLinecap="round"
+            strokeWidth={Math.max(strokeWidth, 2)}
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      ) : (
+        <svg className="shape-svg shape-stroke-layer" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ opacity: opacity / 100 }}>
           {shapeType === 'ellipse' && (
-            <ellipse cx="50" cy="50" rx="48" ry="48" fill={fill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+            <ellipse cx="50" cy="50" rx="48" ry="48" fill={shapeFill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
           )}
           {shapeType === 'triangle' && (
-            <polygon points="50,3 97,97 3,97" fill={fill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+            <polygon points="50,3 97,97 3,97" fill={shapeFill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
           )}
           {shapeType === 'polygon' && (
-            <polygon points={points} fill={fill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+            <polygon points={points} fill={shapeFill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
           )}
-          {isLine && (
-            <line
-              x1="0"
-              y1={lineDirection === 'down' ? '0' : '100'}
-              x2="100"
-              y2={lineDirection === 'down' ? '100' : '0'}
-              fill="none"
-              stroke={strokeColor}
-              strokeDasharray={strokeDasharray}
-              strokeLinecap="round"
-              strokeWidth={Math.max(strokeWidth, 2)}
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-          {shapeType === 'rectangle' && (
-            <rect x="1" y="1" width="98" height="98" rx={radius} ry={radius} fill={fill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+          {(shapeType === 'rectangle' || isImage) && (
+            <rect x="1" y="1" width="98" height="98" rx={radius} ry={radius} fill={shapeFill} stroke={strokeColor} strokeDasharray={strokeDasharray} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
           )}
         </svg>
       )}
@@ -449,6 +567,7 @@ ShapeBlock.craft = {
   displayName: 'Shape',
   props: {
     shapeType: 'rectangle',
+    fillType: 'color',
     fill: '#38bdf8',
     opacity: 100,
     strokeColor: '#0284c7',
@@ -458,6 +577,8 @@ ShapeBlock.craft = {
     points: '50,4 96,96 4,96',
     imageSrc: '',
     imagePosition: 'center',
+    imagePositionX: 50,
+    imagePositionY: 50,
     imageRepeat: 'no-repeat',
     imageSize: 'cover',
     radius: 0,
