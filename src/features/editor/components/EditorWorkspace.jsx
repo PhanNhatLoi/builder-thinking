@@ -32,15 +32,26 @@ function pageLabel(page, index) {
   return page.name ?? `Page ${index + 1}`
 }
 
+function pageCounterValue(pages) {
+  return pages.reduce((maxValue, page, index) => {
+    const numericId = Number.parseInt(String(page.id || '').replace('page-', ''), 10)
+    return Math.max(maxValue, Number.isFinite(numericId) ? numericId : index + 1)
+  }, 1)
+}
+
 export function EditorWorkspace() {
   const [activeTool, setActiveTool] = useState('pointer')
+  const [activeFrameData, setActiveFrameData] = useState(null)
   const [activePageId, setActivePageId] = useState('page-1')
   const [pages, setPages] = useState(initialPages)
+  const [pageLoadToken, setPageLoadToken] = useState(0)
   const [zoom, setZoom] = useState(1)
   const activePageIdRef = useRef('page-1')
   const blankPageSerializedRef = useRef(null)
+  const hydratingPageRef = useRef(false)
   const lastWheelZoomAtRef = useRef(0)
   const pageCounterRef = useRef(1)
+  const pendingPageLoadRef = useRef(null)
   const pagesRef = useRef(initialPages)
   const saveTimerRef = useRef(null)
   const { actions, nodes, query, selectedIds } = useEditor((state) => ({
@@ -68,25 +79,52 @@ export function EditorWorkspace() {
   }, [zoomIn, zoomOut])
 
   const updatePages = useCallback((updater) => {
-    setPages((currentPages) => {
-      const nextPages = typeof updater === 'function' ? updater(currentPages) : updater
-      pagesRef.current = nextPages
-      return nextPages
-    })
+    const nextPages = typeof updater === 'function' ? updater(pagesRef.current) : updater
+    pagesRef.current = nextPages
+    setPages(nextPages)
+    return nextPages
   }, [])
 
   const serializeCurrentPage = useCallback(() => query.serialize(), [query])
 
   const persistActivePage = useCallback((serialized = serializeCurrentPage()) => {
-    updatePages((currentPages) =>
-      currentPages.map((page) => (page.id === activePageIdRef.current ? { ...page, serialized } : page)),
-    )
+    const nextPages = pagesRef.current.map((page) => (
+      page.id === activePageIdRef.current ? { ...page, serialized } : page
+    ))
+    pagesRef.current = nextPages
+    setPages(nextPages)
     return serialized
-  }, [serializeCurrentPage, updatePages])
+  }, [serializeCurrentPage])
+
+  const loadPage = useCallback((pageId, serialized) => {
+    window.clearTimeout(saveTimerRef.current)
+    hydratingPageRef.current = true
+    pendingPageLoadRef.current = { pageId, serialized }
+    setActiveFrameData(serialized)
+    activePageIdRef.current = pageId
+    setActivePageId(pageId)
+    setPageLoadToken((token) => token + 1)
+  }, [])
 
   useEffect(() => {
     activePageIdRef.current = activePageId
   }, [activePageId])
+
+  useEffect(() => {
+    const pendingPageLoad = pendingPageLoadRef.current
+    if (!pendingPageLoad || pendingPageLoad.pageId !== activePageId) return undefined
+
+    pendingPageLoadRef.current = null
+    const selectFrame = window.requestAnimationFrame(() => {
+      actions.selectNode('ROOT')
+
+      window.requestAnimationFrame(() => {
+        hydratingPageRef.current = false
+      })
+    })
+
+    return () => window.cancelAnimationFrame(selectFrame)
+  }, [actions, activePageId, pageLoadToken])
 
   useEffect(() => {
     pagesRef.current = pages
@@ -106,6 +144,8 @@ export function EditorWorkspace() {
   }, [query, updatePages])
 
   useEffect(() => {
+    if (hydratingPageRef.current) return undefined
+
     window.clearTimeout(saveTimerRef.current)
     saveTimerRef.current = window.setTimeout(() => {
       persistActivePage()
@@ -122,11 +162,8 @@ export function EditorWorkspace() {
     if (!targetPage) return
 
     const nextSerialized = targetPage.serialized || blankPageSerializedRef.current || currentSerialized
-    activePageIdRef.current = pageId
-    setActivePageId(pageId)
-    actions.deserialize(nextSerialized)
-    actions.selectNode('ROOT')
-  }, [actions, persistActivePage])
+    loadPage(pageId, nextSerialized)
+  }, [loadPage, persistActivePage])
 
   const addBlankPage = useCallback((afterPageId = null) => {
     const currentSerialized = persistActivePage()
@@ -143,11 +180,8 @@ export function EditorWorkspace() {
       const insertIndex = sourceIndex === -1 ? currentPages.length : sourceIndex + 1
       return [...currentPages.slice(0, insertIndex), nextPage, ...currentPages.slice(insertIndex)]
     })
-    activePageIdRef.current = nextPage.id
-    setActivePageId(nextPage.id)
-    actions.deserialize(nextPage.serialized)
-    actions.selectNode('ROOT')
-  }, [actions, persistActivePage, updatePages])
+    loadPage(nextPage.id, nextPage.serialized)
+  }, [loadPage, persistActivePage, updatePages])
 
   const duplicatePage = useCallback((pageId = activePageIdRef.current) => {
     const currentSerialized = pageId === activePageIdRef.current ? persistActivePage() : null
@@ -168,11 +202,8 @@ export function EditorWorkspace() {
       const insertIndex = sourceIndex === -1 ? currentPages.length : sourceIndex + 1
       return [...currentPages.slice(0, insertIndex), nextPage, ...currentPages.slice(insertIndex)]
     })
-    activePageIdRef.current = nextPage.id
-    setActivePageId(nextPage.id)
-    actions.deserialize(sourceSerialized)
-    actions.selectNode('ROOT')
-  }, [actions, persistActivePage, updatePages])
+    loadPage(nextPage.id, sourceSerialized)
+  }, [loadPage, persistActivePage, updatePages])
 
   const renamePage = useCallback((pageId, name) => {
     updatePages((currentPages) => currentPages.map((page) => (page.id === pageId ? { ...page, name } : page)))
@@ -210,12 +241,31 @@ export function EditorWorkspace() {
     }
 
     const nextActivePage = nextPages[Math.min(pageIndex, nextPages.length - 1)]
-    activePageIdRef.current = nextActivePage.id
-    setActivePageId(nextActivePage.id)
     updatePages(nextPages)
-    actions.deserialize(nextActivePage.serialized || blankPageSerializedRef.current)
-    actions.selectNode('ROOT')
-  }, [actions, persistActivePage, updatePages])
+    loadPage(nextActivePage.id, nextActivePage.serialized || blankPageSerializedRef.current)
+  }, [loadPage, persistActivePage, updatePages])
+
+  const getProjectExportData = useCallback(() => ({
+    activePageId: activePageIdRef.current,
+    pages: pagesRef.current.map((page) => (
+      page.id === activePageIdRef.current ? { ...page, serialized: persistActivePage() } : page
+    )),
+  }), [persistActivePage])
+
+  const importProject = useCallback((projectData) => {
+    if (!projectData?.pages?.length) return
+
+    const importedPages = projectData.pages.map((page, index) => ({
+      id: page.id || `page-${index + 1}`,
+      name: page.name || `Page ${index + 1}`,
+      serialized: page.serialized || blankPageSerializedRef.current,
+    }))
+    const nextActivePage = importedPages.find((page) => page.id === projectData.activePageId) || importedPages[0]
+
+    pageCounterRef.current = pageCounterValue(importedPages)
+    updatePages(importedPages)
+    loadPage(nextActivePage.id, nextActivePage.serialized || blankPageSerializedRef.current)
+  }, [loadPage, updatePages])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -260,6 +310,8 @@ export function EditorWorkspace() {
       <section className="middle">
         <TopBar
           activePageId={activePageId}
+          getProjectExportData={getProjectExportData}
+          onProjectImport={importProject}
           onPageChange={openPage}
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
@@ -318,9 +370,11 @@ export function EditorWorkspace() {
                     </div>
                     <div className="page-workbench-body" onClick={() => !isActive && openPage(page.id)}>
                       {isActive ? (
-                        <Frame>
-                          <Element is={CanvasRoot} canvas>
-                          </Element>
+                        <Frame key={`${activePageId}-${pageLoadToken}`} data={activeFrameData || undefined}>
+                          {!activeFrameData ? (
+                            <Element is={CanvasRoot} canvas>
+                            </Element>
+                          ) : null}
                         </Frame>
                       ) : (
                         <StaticPagePreview serialized={page.serialized} />

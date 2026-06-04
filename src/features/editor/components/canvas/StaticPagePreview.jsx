@@ -1,3 +1,4 @@
+import { findIconAsset } from '../../assets/iconAssets'
 import { getFontCssValue } from '../../text/fontRegistry'
 
 const alignItemsMap = {
@@ -216,6 +217,32 @@ function renderShape(id, node) {
   )
 }
 
+function renderIcon(id, node) {
+  const props = node.props || {}
+  const asset = findIconAsset(props.assetId || 'home')
+  const paths = Array.isArray(props.paths) && props.paths.length ? props.paths : asset.paths
+
+  return (
+    <div key={id} className="static-node-shell" style={shellStyle(props)}>
+      <svg
+        className="svg-icon-block"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={props.color || '#111827'}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={props.strokeWidth || 2}
+        style={{ opacity: (props.opacity ?? 100) / 100 }}
+        aria-hidden="true"
+      >
+        {paths.map((path, index) => (
+          <path key={`${props.assetId || 'icon'}-${index}`} d={path} vectorEffect="non-scaling-stroke" />
+        ))}
+      </svg>
+    </div>
+  )
+}
+
 function renderNode(nodes, id) {
   const node = nodes?.[id]
   if (!node) return null
@@ -226,6 +253,7 @@ function renderNode(nodes, id) {
   if (type === 'TextBlock' || type === 'Text') return renderText(id, node)
   if (type === 'ImageBlock' || type === 'Image') return renderImage(id, node)
   if (type === 'ShapeBlock' || type === 'Shape') return renderShape(id, node)
+  if (type === 'SvgIconBlock' || type === 'Icon') return renderIcon(id, node)
 
   return null
 }

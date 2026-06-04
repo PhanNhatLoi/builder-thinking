@@ -1,5 +1,5 @@
 import { useEditor } from '@craftjs/core'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { ShapeBlock } from './elements'
 import { isEditableTarget } from '../../utils/editorUtils'
 
@@ -140,13 +140,7 @@ async function clipboardImageSource(clipboardData) {
 }
 
 export function ClipboardPasteLayer() {
-  const latestRef = useRef(null)
-  const { actions, nodes, query, selectedIds } = useEditor((state) => ({
-    nodes: state.nodes,
-    selectedIds: state.events.selected ? Array.from(state.events.selected) : [],
-  }))
-
-  latestRef.current = { actions, nodes, query, selectedIds }
+  const { actions, query } = useEditor()
 
   useEffect(() => {
     const handlePaste = async (event) => {
@@ -158,13 +152,15 @@ export function ClipboardPasteLayer() {
       event.preventDefault()
       event.stopPropagation()
 
-      const latest = latestRef.current
-      const { parentId, surface } = resolvePasteTarget(latest.nodes, latest.selectedIds)
+      const state = query.getState()
+      const nodes = state.nodes
+      const selectedIds = state.events.selected ? Array.from(state.events.selected) : []
+      const { parentId, surface } = resolvePasteTarget(nodes, selectedIds)
       if (!surface) return
 
       const naturalSize = await loadImageSize(imageSrc)
       const size = fitSize(naturalSize, surface)
-      const layoutProps = getLayoutProps(latest.nodes, parentId, surface, size)
+      const layoutProps = getLayoutProps(nodes, parentId, surface, size)
       const element = (
         <ShapeBlock
           shapeType="image"
@@ -177,14 +173,14 @@ export function ClipboardPasteLayer() {
           {...layoutProps}
         />
       )
-      const tree = latest.query.parseReactElement(element).toNodeTree()
-      latest.actions.addNodeTree(tree, parentId)
-      latest.actions.selectNode(tree.rootNodeId)
+      const tree = query.parseReactElement(element).toNodeTree()
+      actions.addNodeTree(tree, parentId)
+      actions.selectNode(tree.rootNodeId)
     }
 
     window.addEventListener('paste', handlePaste)
     return () => window.removeEventListener('paste', handlePaste)
-  }, [])
+  }, [actions, query])
 
   return null
 }
