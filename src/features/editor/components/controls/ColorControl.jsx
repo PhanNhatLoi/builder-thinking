@@ -5,6 +5,8 @@ const hexColorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
 
 function normalizeHexColor(value) {
   const nextValue = value.trim()
+  if (nextValue.toLowerCase() === 'transparent') return 'transparent'
+
   const withHash = nextValue.startsWith('#') ? nextValue : `#${nextValue}`
 
   if (!hexColorPattern.test(withHash)) return null
@@ -17,7 +19,9 @@ function normalizeHexColor(value) {
 }
 
 export function ColorControl({ value, onChange }) {
-  const safeValue = normalizeHexColor(value || '') || '#111827'
+  const normalizedValue = normalizeHexColor(value || '')
+  const safeValue = normalizedValue || '#111827'
+  const pickerValue = safeValue === 'transparent' ? '#ffffff' : safeValue
   const [draft, setDraft] = useState(safeValue)
 
   useEffect(() => {
@@ -37,6 +41,13 @@ export function ColorControl({ value, onChange }) {
 
   return (
     <div className="swatches">
+      <button
+        type="button"
+        className={`transparent-swatch ${value === 'transparent' ? 'active' : ''}`}
+        aria-label="Use transparent"
+        title="Use transparent"
+        onClick={() => onChange('transparent')}
+      />
       {colorSwatches.map((color) => (
         <button
           key={color}
@@ -48,7 +59,7 @@ export function ColorControl({ value, onChange }) {
           onClick={() => onChange(color)}
         />
       ))}
-      <input className="color-picker" type="color" value={safeValue} aria-label="Pick color" onChange={(event) => onChange(event.target.value)} />
+      <input className="color-picker" type="color" value={pickerValue} aria-label="Pick color" onChange={(event) => onChange(event.target.value)} />
       <input
         className="color-text"
         type="text"

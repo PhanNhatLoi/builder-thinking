@@ -1,11 +1,15 @@
-import { Image as ImageIcon, LayoutTemplate, MousePointer2, Type } from 'lucide-react'
+import { Circle, Image as ImageIcon, LayoutTemplate, MousePointer2, Pentagon, Slash, Square, Type } from 'lucide-react'
 import { ComponentTool } from './ComponentTool'
 
 const tools = [
   ['pointer', MousePointer2, 'Pointer'],
   ['section', LayoutTemplate, 'Section'],
   ['text', Type, 'Text'],
-  ['image', ImageIcon, 'Image'],
+  ['shape-rectangle', Square, 'Rectangle'],
+  ['shape-ellipse', Circle, 'Ellipse'],
+  ['shape-line', Slash, 'Line'],
+  ['shape-polygon', Pentagon, 'Polygon'],
+  ['shape-image', ImageIcon, 'Image shape'],
 ]
 
 export function BottomComponentToolbar({ activeTool, onToolChange }) {

@@ -16,13 +16,17 @@ import {
   Rows3,
   Square,
   Trash2,
+  Upload,
 } from 'lucide-react'
 import { useEditor } from '@craftjs/core'
+import { useRef } from 'react'
 import { ColorControl } from '../controls/ColorControl'
 import { CompactNumber } from '../controls/CompactNumber'
 import { Field } from '../controls/Field'
 import { IconSegment } from '../controls/IconSegment'
 import { InspectorSection } from './InspectorSection'
+import { SelectControl } from '../controls/SelectControl'
+import { TextInput } from '../controls/TextInput'
 
 const layoutModes = [
   ['free', Move, 'Free layout'],
@@ -50,6 +54,25 @@ const gridFlowOptions = [
   ['column', ArrowDownWideNarrow, 'Top to bottom, then left to right'],
 ]
 
+const backgroundSizeOptions = [
+  { value: 'cover', label: 'Cover' },
+  { value: 'contain', label: 'Contain' },
+  { value: '100% 100%', label: 'Stretch' },
+  { value: 'auto', label: 'Original' },
+]
+
+const backgroundPositionOptions = [
+  { value: 'center', label: 'Center' },
+  { value: 'top', label: 'Top' },
+  { value: 'right', label: 'Right' },
+  { value: 'bottom', label: 'Bottom' },
+  { value: 'left', label: 'Left' },
+  { value: 'top left', label: 'Top left' },
+  { value: 'top right', label: 'Top right' },
+  { value: 'bottom left', label: 'Bottom left' },
+  { value: 'bottom right', label: 'Bottom right' },
+]
+
 function propValue(props, key, fallbackKey, fallbackValue = 0) {
   return props[key] ?? props[fallbackKey] ?? fallbackValue
 }
@@ -65,6 +88,7 @@ function NumberControl({ caption, label, title = caption, value, min, max, suffi
 
 export function SectionInspector({ actions, selectedNode }) {
   const props = selectedNode.data.props
+  const imageInputRef = useRef(null)
   const layoutMode = props.layoutMode || 'free'
   const isAutoLayout = layoutMode !== 'free'
   const isHorizontal = layoutMode === 'horizontal'
@@ -78,6 +102,28 @@ export function SectionInspector({ actions, selectedNode }) {
     actions.history.throttle(400).setProp(selectedNode.id, (draft) => {
       draft[key] = value
     })
+  }
+
+  const setProps = (nextProps) => {
+    actions.history.throttle(400).setProp(selectedNode.id, (draft) => {
+      Object.assign(draft, nextProps)
+    })
+  }
+
+  const importLocalImage = (file) => {
+    if (!file || !file.type.startsWith('image/')) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setProps({
+        backgroundFill: 'image',
+        backgroundImage: String(reader.result || ''),
+        backgroundRepeat: props.backgroundRepeat || 'no-repeat',
+        backgroundSize: props.backgroundSize || 'cover',
+        backgroundPosition: props.backgroundPosition || 'center',
+      })
+    }
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -182,9 +228,79 @@ export function SectionInspector({ actions, selectedNode }) {
           <NumberControl caption="Opacity" label="O" value={props.opacity ?? 100} min={0} max={100} suffix="%" onChange={(value) => setProp('opacity', value)} />
           <NumberControl caption="Corner radius" label="R" value={props.radius ?? 0} min={0} max={160} onChange={(value) => setProp('radius', value)} />
         </div>
+        <Field label="Background fill">
+          <div className="layout-toggle">
+            <button type="button" className={(props.backgroundFill || 'color') === 'color' ? 'active' : ''} onClick={() => setProp('backgroundFill', 'color')}>
+              Color
+            </button>
+            <button type="button" className={props.backgroundFill === 'image' ? 'active' : ''} onClick={() => setProp('backgroundFill', 'image')}>
+              Image
+            </button>
+          </div>
+        </Field>
         <Field label="Background">
           <ColorControl value={props.background || '#f8fafc'} onChange={(value) => setProp('background', value)} />
         </Field>
+        {props.backgroundFill === 'image' && (
+          <>
+            <Field label="Image URL">
+              <TextInput
+                value={props.backgroundImage || ''}
+                placeholder="https://..."
+                onChange={(value) => setProp('backgroundImage', value)}
+              />
+            </Field>
+            <Field label="Local image">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  importLocalImage(event.target.files?.[0])
+                  event.target.value = ''
+                }}
+              />
+              <div className="layout-toggle">
+                <button type="button" onClick={() => imageInputRef.current?.click()}>
+                  <Upload size={14} />
+                  Import local
+                </button>
+                {props.backgroundImage && (
+                  <button type="button" onClick={() => setProp('backgroundImage', '')}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </Field>
+            <div className="control-grid two">
+              <Field label="Size">
+                <SelectControl
+                  label="Background size"
+                  value={props.backgroundSize || 'cover'}
+                  options={backgroundSizeOptions}
+                  onChange={(value) => setProp('backgroundSize', value)}
+                />
+              </Field>
+              <Field label="Position">
+                <SelectControl
+                  label="Background position"
+                  value={props.backgroundPosition || 'center'}
+                  options={backgroundPositionOptions}
+                  onChange={(value) => setProp('backgroundPosition', value)}
+                />
+              </Field>
+            </div>
+            <label className="inspector-checkbox">
+              <input
+                type="checkbox"
+                checked={(props.backgroundRepeat || 'no-repeat') !== 'no-repeat'}
+                onChange={(event) => setProp('backgroundRepeat', event.target.checked ? 'repeat' : 'no-repeat')}
+              />
+              <span>Repeat image</span>
+            </label>
+          </>
+        )}
       </InspectorSection>
 
       <InspectorSection title="Stroke" icon={Square}>

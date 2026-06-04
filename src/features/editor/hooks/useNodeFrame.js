@@ -1,8 +1,106 @@
 import { useEditor, useNode } from '@craftjs/core'
 import { Move } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { clamp } from '../utils/editorUtils'
 
-export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
+function overlaps(startA, endA, startB, endB) {
+  return Math.max(startA, startB) < Math.min(endA, endB)
+}
+
+function horizontalMeasurement(x, y, width, label) {
+  if (width <= 0) return null
+  return {
+    kind: 'h',
+    label,
+    lineStyle: {
+      left: `${x}px`,
+      top: `${y}px`,
+      width: `${width}px`,
+    },
+  }
+}
+
+function verticalMeasurement(x, y, height, label) {
+  if (height <= 0) return null
+  return {
+    kind: 'v',
+    label,
+    lineStyle: {
+      left: `${x}px`,
+      top: `${y}px`,
+      height: `${height}px`,
+    },
+  }
+}
+
+function buildMeasurements(shell, id) {
+  const surface = shell?.closest('.layout-surface')
+  if (!shell || !surface) return []
+
+  const shellRect = shell.getBoundingClientRect()
+  const surfaceRect = surface.getBoundingClientRect()
+  const centerX = shellRect.left + shellRect.width / 2
+  const centerY = shellRect.top + shellRect.height / 2
+  const items = [
+    horizontalMeasurement(surfaceRect.left, centerY, shellRect.left - surfaceRect.left, Math.round(shellRect.left - surfaceRect.left)),
+    horizontalMeasurement(shellRect.right, centerY, surfaceRect.right - shellRect.right, Math.round(surfaceRect.right - shellRect.right)),
+    verticalMeasurement(centerX, surfaceRect.top, shellRect.top - surfaceRect.top, Math.round(shellRect.top - surfaceRect.top)),
+    verticalMeasurement(centerX, shellRect.bottom, surfaceRect.bottom - shellRect.bottom, Math.round(surfaceRect.bottom - shellRect.bottom)),
+  ].filter(Boolean)
+
+  const siblings = Array.from(surface.querySelectorAll('.node-shell')).filter((node) => {
+    return node !== shell && node.dataset.nodeId !== id && node.closest('.layout-surface') === surface
+  })
+  let nearestHorizontal = null
+  let nearestVertical = null
+
+  siblings.forEach((node) => {
+    const rect = node.getBoundingClientRect()
+    if (overlaps(shellRect.top, shellRect.bottom, rect.top, rect.bottom)) {
+      if (rect.right <= shellRect.left) {
+        const gap = shellRect.left - rect.right
+        if (!nearestHorizontal || gap < nearestHorizontal.gap) {
+          nearestHorizontal = { gap, x: rect.right, y: centerY, width: gap }
+        }
+      }
+      if (rect.left >= shellRect.right) {
+        const gap = rect.left - shellRect.right
+        if (!nearestHorizontal || gap < nearestHorizontal.gap) {
+          nearestHorizontal = { gap, x: shellRect.right, y: centerY, width: gap }
+        }
+      }
+    }
+
+    if (overlaps(shellRect.left, shellRect.right, rect.left, rect.right)) {
+      if (rect.bottom <= shellRect.top) {
+        const gap = shellRect.top - rect.bottom
+        if (!nearestVertical || gap < nearestVertical.gap) {
+          nearestVertical = { gap, x: centerX, y: rect.bottom, height: gap }
+        }
+      }
+      if (rect.top >= shellRect.bottom) {
+        const gap = rect.top - shellRect.bottom
+        if (!nearestVertical || gap < nearestVertical.gap) {
+          nearestVertical = { gap, x: centerX, y: shellRect.bottom, height: gap }
+        }
+      }
+    }
+  })
+
+  if (nearestHorizontal) {
+    items.push(horizontalMeasurement(nearestHorizontal.x, nearestHorizontal.y - 14, nearestHorizontal.width, Math.round(nearestHorizontal.gap)))
+  }
+  if (nearestVertical) {
+    items.push(verticalMeasurement(nearestVertical.x + 14, nearestVertical.y, nearestVertical.height, Math.round(nearestVertical.gap)))
+  }
+
+  return items.filter(Boolean)
+}
+
+export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeWidth = 72, x = 0, y = 0, width, height }) {
+  const shellRef = useRef(null)
+  const [altDown, setAltDown] = useState(false)
+  const [measurements, setMeasurements] = useState([])
   const {
     connectors: { connect, drag },
     actions,
@@ -32,8 +130,47 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
 
   const connectNode = (ref) => {
     if (!ref) return
+    shellRef.current = ref
     isFixed ? connect(ref) : connect(drag(ref))
   }
+
+  const updateMeasurements = () => {
+    setMeasurements(buildMeasurements(shellRef.current, id))
+  }
+
+  useEffect(() => {
+    if (!selected) {
+      setMeasurements([])
+      return undefined
+    }
+
+    const keyDown = (event) => {
+      if (event.altKey) {
+        setAltDown(true)
+        requestAnimationFrame(updateMeasurements)
+      }
+    }
+    const keyUp = (event) => {
+      if (!event.altKey) {
+        setAltDown(false)
+        setMeasurements([])
+      }
+    }
+
+    window.addEventListener('keydown', keyDown)
+    window.addEventListener('keyup', keyUp)
+
+    return () => {
+      window.removeEventListener('keydown', keyDown)
+      window.removeEventListener('keyup', keyUp)
+    }
+  }, [id, selected])
+
+  useEffect(() => {
+    if (selected && altDown) {
+      updateMeasurements()
+    }
+  }, [altDown, height, selected, width, x, y])
 
   const startMove = (event) => {
     event.preventDefault()
@@ -58,18 +195,34 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     const move = (moveEvent) => {
       lastClientX = moveEvent.clientX
       lastClientY = moveEvent.clientY
-      const nextX = clamp(originX + moveEvent.clientX - startX, 0, canvasRect.width - nodeWidth)
-      const nextY = clamp(originY + moveEvent.clientY - startY, 0, canvasRect.height - nodeHeight)
+      let deltaX = moveEvent.clientX - startX
+      let deltaY = moveEvent.clientY - startY
+      if (moveEvent.shiftKey) {
+        if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+          deltaY = 0
+        } else {
+          deltaX = 0
+        }
+      }
+      const nextX = clamp(originX + deltaX, 0, canvasRect.width - nodeWidth)
+      const nextY = clamp(originY + deltaY, 0, canvasRect.height - nodeHeight)
 
       actions.setProp((draft) => {
         draft.x = Math.round(nextX)
         draft.y = Math.round(nextY)
       }, 16)
+
+      if (moveEvent.altKey) {
+        requestAnimationFrame(updateMeasurements)
+      } else if (measurements.length) {
+        setMeasurements([])
+      }
     }
 
     const stop = () => {
       window.removeEventListener('mousemove', move)
       window.removeEventListener('mouseup', stop)
+      if (!altDown) setMeasurements([])
 
       const previousPointerEvents = shell.style.pointerEvents
       shell.style.pointerEvents = 'none'
@@ -117,10 +270,23 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     const originHeight = shell.offsetHeight
 
     const move = (moveEvent) => {
+      let nextWidth = originWidth + moveEvent.clientX - startX
+      let nextHeight = originHeight + moveEvent.clientY - startY
+      if (moveEvent.shiftKey && originHeight > 0) {
+        const aspectRatio = originWidth / originHeight
+        if (Math.abs(moveEvent.clientX - startX) >= Math.abs(moveEvent.clientY - startY)) {
+          nextHeight = nextWidth / aspectRatio
+        } else {
+          nextWidth = nextHeight * aspectRatio
+        }
+      }
+
       actions.setProp((draft) => {
-        draft.width = Math.round(clamp(originWidth + moveEvent.clientX - startX, 72, 960))
-        draft.height = Math.round(clamp(originHeight + moveEvent.clientY - startY, 32, 720))
+        draft.width = Math.round(clamp(nextWidth, minResizeWidth, 960))
+        draft.height = Math.round(clamp(nextHeight, minResizeHeight, 720))
       })
+
+      if (moveEvent.altKey) requestAnimationFrame(updateMeasurements)
     }
 
     const stop = () => {
@@ -142,5 +308,6 @@ export function useNodeFrame({ layout = 'flow', x = 0, y = 0, width, height }) {
     startMove,
     startResize,
     MoveIcon: Move,
+    measurements,
   }
 }

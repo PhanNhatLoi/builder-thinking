@@ -24,6 +24,7 @@ import { TextInput } from '../controls/TextInput'
 import { InspectorSection } from './InspectorSection'
 import { RootPageInspector } from './RootPageInspector'
 import { SectionInspector } from './SectionInspector'
+import { ShapeInspector } from './ShapeInspector'
 import { TextInspector } from './TextInspector'
 
 export function Inspector() {
@@ -53,6 +54,10 @@ export function Inspector() {
 
   if (name === 'Text') {
     return <TextInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Shape') {
+    return <ShapeInspector actions={actions} selectedNode={selectedNode} />
   }
 
   const setProp = (key, value) => {

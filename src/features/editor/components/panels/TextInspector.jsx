@@ -5,8 +5,10 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
+  Bold,
   Copy,
   Eye,
+  Italic,
   Move,
   Palette,
   Trash2,
@@ -20,6 +22,8 @@ import { IconSegment } from '../controls/IconSegment'
 import { SelectControl } from '../controls/SelectControl'
 import { TextInput } from '../controls/TextInput'
 import { InspectorSection } from './InspectorSection'
+import { fontOptions, getFontCssValue } from '../../text/fontRegistry'
+import { formatSelectedText, patchSelectedTextStyle } from '../../text/lexicalTextBridge'
 
 const textAlignOptions = [
   ['left', AlignLeft, 'Align left'],
@@ -33,7 +37,7 @@ const verticalAlignOptions = [
   ['bottom', AlignVerticalJustifyEnd, 'Align bottom'],
 ]
 
-const fontOptions = [{ value: 'Inter', label: 'Inter' }]
+const baseFontSizeOptions = [8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, 56, 64, 72, 96, 120, 144]
 
 const weightOptions = [
   { value: '400', label: 'Regular' },
@@ -58,11 +62,30 @@ export function TextInspector({ actions, selectedNode }) {
   }))
   const canUsePosition = parentLayoutMode ? parentLayoutMode === 'free' : props.layout === 'fixed'
   const fontWeight = props.fontWeight ?? props.weight ?? 500
+  const fontSize = props.fontSize ?? 24
+  const minLineHeight = Math.ceil(fontSize * 1.18)
+  const fontSizeOptions = [...new Set([...baseFontSizeOptions, fontSize])]
+    .sort((first, second) => first - second)
+    .map((size) => ({ value: String(size), label: `${size}` }))
 
   const setProp = (key, value) => {
     actions.history.throttle(400).setProp(selectedNode.id, (draft) => {
       draft[key] = value
     })
+  }
+
+  const setTextStyle = (key, value, style) => {
+    if (style && patchSelectedTextStyle(selectedNode.id, style)) return
+    setProp(key, value)
+  }
+
+  const handleFormat = (format) => (event) => {
+    event.preventDefault()
+    if (formatSelectedText(selectedNode.id, format)) return
+
+    if (format === 'bold') {
+      setProp('fontWeight', fontWeight >= 700 ? 500 : 700)
+    }
   }
 
   return (
@@ -101,17 +124,64 @@ export function TextInspector({ actions, selectedNode }) {
 
       <InspectorSection title="Typography" icon={Type}>
         <Field label="Font family">
-          <SelectControl label="Font family" value={props.fontFamily || 'Inter'} options={fontOptions} onChange={(value) => setProp('fontFamily', value)} />
+          <SelectControl
+            label="Font family"
+            value={props.fontFamily || 'Inter'}
+            options={fontOptions}
+            onChange={(value) => setTextStyle('fontFamily', value, { 'font-family': getFontCssValue(value) })}
+          />
+        </Field>
+        <Field label="Inline style">
+          <div className="inline-format-controls">
+            <button type="button" title="Bold selected text" aria-label="Bold selected text" onMouseDown={handleFormat('bold')}>
+              <Bold size={15} />
+            </button>
+            <button type="button" title="Italic selected text" aria-label="Italic selected text" onMouseDown={handleFormat('italic')}>
+              <Italic size={15} />
+            </button>
+          </div>
         </Field>
         <div className="control-grid two">
           <Field label="Weight">
-            <SelectControl label="Font weight" value={String(fontWeight)} options={weightOptions} onChange={(value) => setProp('fontWeight', Number(value))} />
+            <SelectControl
+              label="Font weight"
+              value={String(fontWeight)}
+              options={weightOptions}
+              onChange={(value) => setTextStyle('fontWeight', Number(value), { 'font-weight': String(value) })}
+            />
           </Field>
-          <NumberControl caption="Size" label="S" value={props.fontSize ?? 24} min={8} max={240} onChange={(value) => setProp('fontSize', value)} />
+          <Field label="Size">
+            <SelectControl
+              label="Font size"
+              value={String(fontSize)}
+              options={fontSizeOptions}
+              onChange={(value) => {
+                const nextSize = Number(value)
+                setTextStyle('fontSize', nextSize, {
+                  'font-size': `${nextSize}px`,
+                  'line-height': `${Math.ceil(nextSize * 1.18)}px`,
+                })
+              }}
+            />
+          </Field>
         </div>
         <div className="control-grid two">
-          <NumberControl caption="Line height" label="L" value={props.lineHeight ?? 32} min={8} max={320} onChange={(value) => setProp('lineHeight', value)} />
-          <NumberControl caption="Letter spacing" label="A" value={props.letterSpacing ?? 0} min={0} max={100} onChange={(value) => setProp('letterSpacing', value)} />
+          <NumberControl
+            caption="Line height"
+            label="L"
+            value={Math.max(props.lineHeight ?? 32, minLineHeight)}
+            min={minLineHeight}
+            max={320}
+            onChange={(value) => setTextStyle('lineHeight', value, { 'line-height': `${value}px` })}
+          />
+          <NumberControl
+            caption="Letter spacing"
+            label="A"
+            value={props.letterSpacing ?? 0}
+            min={0}
+            max={100}
+            onChange={(value) => setTextStyle('letterSpacing', value, { 'letter-spacing': `${value}px` })}
+          />
         </div>
         <Field label="Horizontal alignment">
           <IconSegment value={props.align || 'left'} onChange={(value) => setProp('align', value)} options={textAlignOptions} />
@@ -123,7 +193,7 @@ export function TextInspector({ actions, selectedNode }) {
 
       <InspectorSection title="Fill" icon={Palette}>
         <Field label="Color">
-          <ColorControl value={props.color || '#111827'} onChange={(value) => setProp('color', value)} />
+          <ColorControl value={props.color || '#111827'} onChange={(value) => setTextStyle('color', value, { color: value })} />
         </Field>
       </InspectorSection>
 

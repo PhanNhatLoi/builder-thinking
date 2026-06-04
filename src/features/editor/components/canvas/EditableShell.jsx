@@ -1,13 +1,16 @@
 import { useNodeFrame } from '../../hooks/useNodeFrame'
 
-export function EditableShell({ children, className = '', layout = 'flow', x = 0, y = 0, width, height }) {
-  const { connectNode, hovered, id, isFixed, MoveIcon, selected, shellStyle, startMove, startResize } = useNodeFrame({
+export function EditableShell({ children, className = '', layout = 'flow', minResizeHeight, minResizeWidth, x = 0, y = 0, width, height }) {
+  const { connectNode, hovered, id, isFixed, measurements, MoveIcon, selected, shellStyle, startMove, startResize } = useNodeFrame({
     layout,
+    minResizeHeight,
+    minResizeWidth,
     x,
     y,
     width,
     height,
   })
+  const hasDimensions = Number.isFinite(width) && Number.isFinite(height)
 
   return (
     <div
@@ -27,6 +30,17 @@ export function EditableShell({ children, className = '', layout = 'flow', x = 0
       )}
       {children}
       {selected && <button className="node-resize-handle" type="button" aria-label="Resize item" onMouseDownCapture={startResize} />}
+      {selected && hasDimensions && (
+        <div className="dimension-badge node-dimension-badge">
+          {Math.round(width)} x {Math.round(height)}
+        </div>
+      )}
+      {selected &&
+        measurements.map((measurement, index) => (
+          <div key={`${measurement.kind}-${index}`} className={`measurement-line ${measurement.kind}`} style={measurement.lineStyle}>
+            <span>{measurement.label}</span>
+          </div>
+        ))}
     </div>
   )
 }
