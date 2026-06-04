@@ -1,4 +1,4 @@
-import { ChevronRight, Circle, FileText, Image as ImageIcon, Pentagon, Slash, Square, Type } from 'lucide-react'
+import { ChevronRight, Circle, FileText, Image as ImageIcon, Pentagon, Slash, Sparkles, Square, Type } from 'lucide-react'
 import { nodeTitle } from '../../utils/editorUtils'
 
 function layerIcon(node) {
@@ -8,6 +8,7 @@ function layerIcon(node) {
   if (displayName === 'Page') return FileText
   if (displayName === 'Text') return Type
   if (displayName === 'Image') return ImageIcon
+  if (displayName === 'Icon') return Sparkles
   if (displayName === 'Section') return Square
   if (displayName === 'Shape') {
     if (shapeType === 'ellipse') return Circle

@@ -243,6 +243,96 @@ button:disabled {
   width: 14px;
 }
 
+.assets-panel {
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.assets-panel .panel-heading {
+  padding: 4px 2px 8px;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.asset-tile {
+  display: grid;
+  min-height: 82px;
+  place-items: center;
+  gap: 7px;
+  padding: 10px 8px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: grab;
+}
+
+.asset-tile:hover {
+  color: #075985;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.asset-tile:active {
+  cursor: grabbing;
+}
+
+.asset-tile span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.asset-preview-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.asset-drag-preview {
+  position: fixed;
+  z-index: 80;
+  display: grid;
+  min-width: 76px;
+  place-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  color: #075985;
+  pointer-events: none;
+  background: #ffffff;
+  border: 1px solid #7dd3fc;
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgb(15 23 42 / 24%);
+  transform: translate(14px, 14px);
+}
+
+.asset-drag-preview .asset-preview-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.asset-drag-preview span {
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.svg-icon-shell {
+  color: #111827;
+}
+
+.svg-icon-block {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .middle {
   display: grid;
   grid-template-rows: 62px minmax(0, 1fr);

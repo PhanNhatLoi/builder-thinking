@@ -1,5 +1,5 @@
 import { CanvasRoot } from './components/canvas/CanvasRoot'
-import { ImageBlock, Section, ShapeBlock, TextBlock } from './components/canvas/elements'
+import { ImageBlock, Section, ShapeBlock, SvgIconBlock, TextBlock } from './components/canvas/elements'
 
 export const editorResolver = {
   CanvasRoot,
@@ -7,4 +7,5 @@ export const editorResolver = {
   TextBlock,
   ImageBlock,
   ShapeBlock,
+  SvgIconBlock,
 }

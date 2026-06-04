@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { EditableShell } from './EditableShell'
 import { TextLexicalEditor } from './TextLexicalEditor'
 import { getFontCssValue } from '../../text/fontRegistry'
+import { findIconAsset } from '../../assets/iconAssets'
 
 const alignItemsMap = {
   start: 'flex-start',
@@ -496,5 +497,57 @@ ShapeBlock.craft = {
     y: 80,
     width: 180,
     height: 120,
+  },
+}
+
+export function SvgIconBlock({
+  assetId = 'home',
+  paths,
+  color = '#111827',
+  opacity = 100,
+  strokeWidth = 2,
+  layout = 'flow',
+  x = 80,
+  y = 80,
+  width = 72,
+  height = 72,
+}) {
+  const asset = findIconAsset(assetId)
+  const iconPaths = Array.isArray(paths) && paths.length ? paths : asset.paths
+
+  return (
+    <EditableShell className="svg-icon-shell" layout={layout} minResizeHeight={16} minResizeWidth={16} x={x} y={y} width={width} height={height}>
+      <svg
+        className="svg-icon-block"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={strokeWidth}
+        style={{ opacity: opacity / 100 }}
+        aria-hidden="true"
+      >
+        {iconPaths.map((path, index) => (
+          <path key={`${assetId}-${index}`} d={path} vectorEffect="non-scaling-stroke" />
+        ))}
+      </svg>
+    </EditableShell>
+  )
+}
+
+SvgIconBlock.craft = {
+  displayName: 'Icon',
+  props: {
+    assetId: 'home',
+    paths: findIconAsset('home').paths,
+    color: '#111827',
+    opacity: 100,
+    strokeWidth: 2,
+    layout: 'flow',
+    x: 80,
+    y: 80,
+    width: 72,
+    height: 72,
   },
 }

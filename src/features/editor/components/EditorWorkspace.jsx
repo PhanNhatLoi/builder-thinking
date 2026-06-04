@@ -2,6 +2,7 @@ import { Element, Frame, useEditor } from '@craftjs/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CanvasRoot } from './canvas/CanvasRoot'
 import { CanvasCreationLayer } from './canvas/CanvasCreationLayer'
+import { ClipboardPasteLayer } from './canvas/ClipboardPasteLayer'
 import { SelectionMarqueeLayer } from './canvas/SelectionMarqueeLayer'
 import { StaticPagePreview } from './canvas/StaticPagePreview'
 import { ImageBlock, Section, TextBlock } from './canvas/elements'
@@ -254,6 +255,7 @@ export function EditorWorkspace() {
   return (
     <div className="workspace">
       <KeyboardShortcuts />
+      <ClipboardPasteLayer />
       <LeftSidebar />
       <section className="middle">
         <TopBar
