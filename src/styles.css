@@ -203,6 +203,37 @@ button:disabled {
   gap: 8px;
 }
 
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.zoom-controls .icon-button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+}
+
+.zoom-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 30px;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .icon-button {
   display: grid;
   width: 34px;
@@ -250,6 +281,7 @@ button:disabled {
   width: min(860px, 100%);
   min-width: 520px;
   margin: 0 auto 48px;
+  zoom: var(--canvas-zoom, 1);
 }
 
 .page-canvas {

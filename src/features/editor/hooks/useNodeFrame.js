@@ -33,19 +33,25 @@ function verticalMeasurement(x, y, height, label) {
   }
 }
 
+function getElementScale(element) {
+  if (!element) return 1
+  return element.offsetWidth ? element.getBoundingClientRect().width / element.offsetWidth : 1
+}
+
 function buildMeasurements(shell, id) {
   const surface = shell?.closest('.layout-surface')
   if (!shell || !surface) return []
 
   const shellRect = shell.getBoundingClientRect()
   const surfaceRect = surface.getBoundingClientRect()
+  const scale = getElementScale(surface)
   const centerX = shellRect.left + shellRect.width / 2
   const centerY = shellRect.top + shellRect.height / 2
   const items = [
-    horizontalMeasurement(surfaceRect.left, centerY, shellRect.left - surfaceRect.left, Math.round(shellRect.left - surfaceRect.left)),
-    horizontalMeasurement(shellRect.right, centerY, surfaceRect.right - shellRect.right, Math.round(surfaceRect.right - shellRect.right)),
-    verticalMeasurement(centerX, surfaceRect.top, shellRect.top - surfaceRect.top, Math.round(shellRect.top - surfaceRect.top)),
-    verticalMeasurement(centerX, shellRect.bottom, surfaceRect.bottom - shellRect.bottom, Math.round(surfaceRect.bottom - shellRect.bottom)),
+    horizontalMeasurement(surfaceRect.left, centerY, shellRect.left - surfaceRect.left, Math.round((shellRect.left - surfaceRect.left) / scale)),
+    horizontalMeasurement(shellRect.right, centerY, surfaceRect.right - shellRect.right, Math.round((surfaceRect.right - shellRect.right) / scale)),
+    verticalMeasurement(centerX, surfaceRect.top, shellRect.top - surfaceRect.top, Math.round((shellRect.top - surfaceRect.top) / scale)),
+    verticalMeasurement(centerX, shellRect.bottom, surfaceRect.bottom - shellRect.bottom, Math.round((surfaceRect.bottom - shellRect.bottom) / scale)),
   ].filter(Boolean)
 
   const siblings = Array.from(surface.querySelectorAll('.node-shell')).filter((node) => {
@@ -88,10 +94,10 @@ function buildMeasurements(shell, id) {
   })
 
   if (nearestHorizontal) {
-    items.push(horizontalMeasurement(nearestHorizontal.x, nearestHorizontal.y - 14, nearestHorizontal.width, Math.round(nearestHorizontal.gap)))
+    items.push(horizontalMeasurement(nearestHorizontal.x, nearestHorizontal.y - 14, nearestHorizontal.width, Math.round(nearestHorizontal.gap / scale)))
   }
   if (nearestVertical) {
-    items.push(verticalMeasurement(nearestVertical.x + 14, nearestVertical.y, nearestVertical.height, Math.round(nearestVertical.gap)))
+    items.push(verticalMeasurement(nearestVertical.x + 14, nearestVertical.y, nearestVertical.height, Math.round(nearestVertical.gap / scale)))
   }
 
   return items.filter(Boolean)
@@ -181,6 +187,9 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     if (!canvas) return
 
     const canvasRect = canvas.getBoundingClientRect()
+    const canvasScale = getElementScale(canvas)
+    const canvasWidth = canvasRect.width / canvasScale
+    const canvasHeight = canvasRect.height / canvasScale
     const shell = event.currentTarget.classList.contains('node-shell') ? event.currentTarget : event.currentTarget.closest('.node-shell')
     if (!shell) return
 
@@ -222,8 +231,8 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     const move = (moveEvent) => {
       lastClientX = moveEvent.clientX
       lastClientY = moveEvent.clientY
-      let deltaX = moveEvent.clientX - startX
-      let deltaY = moveEvent.clientY - startY
+      let deltaX = (moveEvent.clientX - startX) / canvasScale
+      let deltaY = (moveEvent.clientY - startY) / canvasScale
       if (moveEvent.shiftKey) {
         if (Math.abs(deltaX) >= Math.abs(deltaY)) {
           deltaY = 0
@@ -231,12 +240,12 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
           deltaX = 0
         }
       }
-      const maxDeltaX = groupBox ? canvasRect.width - (groupBox.right - groupBox.left) - groupBox.left : canvasRect.width - nodeWidth - originX
-      const maxDeltaY = groupBox ? canvasRect.height - (groupBox.bottom - groupBox.top) - groupBox.top : canvasRect.height - nodeHeight - originY
+      const maxDeltaX = groupBox ? canvasWidth - (groupBox.right - groupBox.left) - groupBox.left : canvasWidth - nodeWidth - originX
+      const maxDeltaY = groupBox ? canvasHeight - (groupBox.bottom - groupBox.top) - groupBox.top : canvasHeight - nodeHeight - originY
       const clampedDeltaX = clamp(deltaX, groupBox ? -groupBox.left : -originX, maxDeltaX)
       const clampedDeltaY = clamp(deltaY, groupBox ? -groupBox.top : -originY, maxDeltaY)
-      const nextX = clamp(originX + clampedDeltaX, 0, canvasRect.width - nodeWidth)
-      const nextY = clamp(originY + clampedDeltaY, 0, canvasRect.height - nodeHeight)
+      const nextX = clamp(originX + clampedDeltaX, 0, canvasWidth - nodeWidth)
+      const nextY = clamp(originY + clampedDeltaY, 0, canvasHeight - nodeHeight)
 
       if (groupOrigins.length > 1) {
         groupOrigins.forEach((item) => {
@@ -282,8 +291,11 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
       const nextParent = nodes[nextParentId]
       const nextParentLayoutMode = nextParent?.data.props.layoutMode || 'vertical'
       const nextParentRect = targetSurface.getBoundingClientRect()
-      const nextX = clamp(lastClientX - nextParentRect.left, 0, nextParentRect.width - nodeWidth)
-      const nextY = clamp(lastClientY - nextParentRect.top, 0, nextParentRect.height - nodeHeight)
+      const nextParentScale = getElementScale(targetSurface)
+      const nextParentWidth = nextParentRect.width / nextParentScale
+      const nextParentHeight = nextParentRect.height / nextParentScale
+      const nextX = clamp((lastClientX - nextParentRect.left) / nextParentScale, 0, nextParentWidth - nodeWidth)
+      const nextY = clamp((lastClientY - nextParentRect.top) / nextParentScale, 0, nextParentHeight - nodeHeight)
 
       actions.setProp((draft) => {
         draft.layout = nextParentLayoutMode === 'free' ? 'fixed' : 'flow'
@@ -304,14 +316,15 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     event.stopPropagation()
 
     const shell = event.currentTarget.parentElement
+    const scale = getElementScale(shell)
     const startX = event.clientX
     const startY = event.clientY
     const originWidth = shell.offsetWidth
     const originHeight = shell.offsetHeight
 
     const move = (moveEvent) => {
-      let nextWidth = originWidth + moveEvent.clientX - startX
-      let nextHeight = originHeight + moveEvent.clientY - startY
+      let nextWidth = originWidth + (moveEvent.clientX - startX) / scale
+      let nextHeight = originHeight + (moveEvent.clientY - startY) / scale
       if (moveEvent.shiftKey && originHeight > 0) {
         const aspectRatio = originWidth / originHeight
         if (Math.abs(moveEvent.clientX - startX) >= Math.abs(moveEvent.clientY - startY)) {
