@@ -1,4 +1,4 @@
-import { ArrowRight, Blocks, Download, Layers3, MousePointer2, Palette, PanelLeft, Smartphone, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowRight, Blocks, Bot, Download, Layers3, MousePointer2, Palette, PanelLeft, Smartphone, Sparkles, Wand2 } from 'lucide-react'
 import { Editor } from '../../editor'
 
 const featureCards = [
@@ -83,6 +83,28 @@ export function LandingPage({ onStart }) {
             </article>
           )
         })}
+      </section>
+
+      <section className="landing-ai-builder" aria-label="AI Builder coming soon">
+        <div className="landing-ai-copy">
+          <span className="landing-coming-soon">
+            <Sparkles size={15} />
+            Coming soon
+          </span>
+          <h2>AI Builder for automatic UI generation.</h2>
+          <p>
+            We are researching an AI-assisted workflow that can turn prompts, structured JSON, or design briefs into
+            editable Builder Thinking pages. The goal is not a static image output, but real layers, sections, text,
+            shapes, and export-ready pages that users can continue editing.
+          </p>
+        </div>
+        <div className="landing-ai-card">
+          <Bot size={28} />
+          <div>
+            <strong>Research preview</strong>
+            <span>Prompt to editable page, AI-ready token import, and layout-aware generation.</span>
+          </div>
+        </div>
       </section>
 
       <section id="demo" className="landing-demo-section">

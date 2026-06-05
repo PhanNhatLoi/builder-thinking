@@ -2,6 +2,8 @@
 
 Builder Thinking is a Canva-like page builder built with React, Craft.js, and Lexical. It focuses on visual document creation: resumes, portfolios, posters, multi-page documents, and AI-generated design layouts.
 
+> Status: alpha. Builder Thinking is usable as a prototype and portfolio-grade editor, but APIs, schemas, and project file formats may still change.
+
 ![Builder Thinking editor screenshot](docs/assets/editor-overview.png)
 
 ## What It Does
@@ -98,6 +100,18 @@ The project currently has two main surfaces:
 - Fontsource packages
 - Playwright for visual/smoke checks
 
+## Open Source
+
+Builder Thinking is released under the MIT License.
+
+Before using it in production, review the current alpha status and test the editor workflows that matter to your use case.
+
+Useful files:
+
+- `LICENSE`: license terms.
+- `CONTRIBUTING.md`: contribution guidelines.
+- `.github/ISSUE_TEMPLATE/`: bug report and feature request templates.
+
 ## Project Structure
 
 ```text
@@ -176,6 +190,16 @@ Build for production:
 npm run build
 ```
 
+## Contributing
+
+Contributions are welcome while the project is in alpha. Please keep changes focused and verify the editor route before opening a pull request.
+
+Read the full guide:
+
+```text
+CONTRIBUTING.md
+```
+
 ## Routes
 
 - `/` or `#home`: landing page
@@ -203,3 +227,7 @@ The project is moving toward a full user-facing web product:
 - Full editor for design work.
 - AI-oriented JSON token import/export for generated designs.
 - More production-ready document export and asset workflows.
+
+## License
+
+MIT. See `LICENSE` for details.

@@ -1,7 +1,9 @@
 {
   "name": "builder-thinking",
-  "private": true,
+  "private": false,
   "version": "0.0.0",
+  "description": "A Canva-like visual page builder built with React, Craft.js, and Lexical.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
