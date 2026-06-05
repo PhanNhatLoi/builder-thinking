@@ -1,5 +1,5 @@
 import { useEditor } from '@craftjs/core'
-import { Braces, ChevronDown, Clipboard, Download, FileArchive, FileImage, FileText, MousePointer2, Redo2, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { Braces, ChevronDown, ChevronRight, Clipboard, Download, FileArchive, FileImage, FileText, FolderOpen, Redo2, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import { useRef, useState } from 'react'
 import aiDesignGuide from '../../ai/AI_DESIGN_GUIDE.md?raw'
 import { exportDocument, parseProjectFile, parseProjectToken } from '../../export/exportDocument'
@@ -16,8 +16,7 @@ export function TopBar({
   onZoomOut,
   onZoomReset,
 }) {
-  const [exportOpen, setExportOpen] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
+  const [fileOpen, setFileOpen] = useState(false)
   const [jsonTokenOpen, setJsonTokenOpen] = useState(false)
   const [jsonToken, setJsonToken] = useState('')
   const [working, setWorking] = useState(null)
@@ -32,7 +31,7 @@ export function TopBar({
     if (working) return
 
     setWorking(format)
-    setExportOpen(false)
+    setFileOpen(false)
     try {
       await exportDocument(format, format === 'project' || format === 'token' ? getProjectExportData?.() : null)
     } finally {
@@ -41,7 +40,7 @@ export function TopBar({
   }
 
   const handleImportPick = () => {
-    setImportOpen(false)
+    setFileOpen(false)
     importInputRef.current?.click()
   }
 
@@ -78,33 +77,113 @@ export function TopBar({
   }
 
   const handleCopyAiGuide = async () => {
-    setExportOpen(false)
+    setFileOpen(false)
     await navigator.clipboard?.writeText(aiDesignGuide)
   }
 
   const handleDownloadAiGuide = async () => {
     await exportDocument('ai-guide', aiDesignGuide)
-    setExportOpen(false)
+    setFileOpen(false)
   }
 
   const openJsonTokenModal = () => {
-    setImportOpen(false)
+    setFileOpen(false)
     setJsonTokenOpen(true)
   }
 
-  const exportButtonLabel = working === 'import'
+  const fileButtonLabel = working === 'import'
     ? 'Importing'
     : working
       ? `Exporting ${working.toUpperCase()}`
-      : 'Export'
+      : 'File'
 
   return (
     <header className="top-bar">
-      <div className="document-pill">
-        <MousePointer2 size={16} />
-        <span>Builder Thinking</span>
-      </div>
       <div className="top-actions">
+        <div className="file-dropdown">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".btproj,application/octet-stream"
+            aria-label="Import project file"
+            style={{ display: 'none' }}
+            onChange={handleImportFile}
+          />
+          <button
+            type="button"
+            className="file-button"
+            aria-expanded={fileOpen}
+            disabled={Boolean(working)}
+            onClick={() => setFileOpen((current) => !current)}
+          >
+            <FolderOpen size={16} />
+            {fileButtonLabel}
+            <ChevronDown size={14} />
+          </button>
+          {fileOpen && (
+            <div className="file-menu">
+              <div className="file-menu-item has-submenu" tabIndex={0}>
+                <span className="file-menu-label">
+                  <Upload size={15} />
+                  Import
+                </span>
+                <ChevronRight size={14} />
+                <div className="file-submenu">
+                  <button type="button" onClick={handleImportPick}>
+                    <FileArchive size={15} />
+                    <span>Project File</span>
+                  </button>
+                  <button type="button" onClick={openJsonTokenModal}>
+                    <Braces size={15} />
+                    <span>JSON Token</span>
+                  </button>
+                </div>
+              </div>
+              <div className="file-menu-item has-submenu" tabIndex={0}>
+                <span className="file-menu-label">
+                  <Download size={15} />
+                  Export
+                </span>
+                <ChevronRight size={14} />
+                <div className="file-submenu">
+                  <button type="button" onClick={() => handleExport('png')}>
+                    <FileImage size={15} />
+                    <span>PNG</span>
+                  </button>
+                  <button type="button" onClick={() => handleExport('pdf')}>
+                    <FileText size={15} />
+                    <span>PDF</span>
+                  </button>
+                  <button type="button" onClick={() => handleExport('project')}>
+                    <FileArchive size={15} />
+                    <span>Project</span>
+                  </button>
+                  <button type="button" onClick={() => handleExport('token')}>
+                    <Braces size={15} />
+                    <span>JSON Token</span>
+                  </button>
+                </div>
+              </div>
+              <div className="file-menu-item has-submenu" tabIndex={0}>
+                <span className="file-menu-label">
+                  <Clipboard size={15} />
+                  AI Guide
+                </span>
+                <ChevronRight size={14} />
+                <div className="file-submenu">
+                  <button type="button" onClick={handleCopyAiGuide}>
+                    <Clipboard size={15} />
+                    <span>Copy Guide</span>
+                  </button>
+                  <button type="button" onClick={handleDownloadAiGuide}>
+                    <FileText size={15} />
+                    <span>Download Guide</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="page-controls" aria-label="Page controls">
           <select className="page-select" value={activePageId} aria-label="Active page" onChange={(event) => onPageChange?.(event.target.value)}>
             {pages.map((page, index) => (
@@ -129,86 +208,6 @@ export function TopBar({
           disabled={!selectedIds.length}
           onClick={() => selectedIds.length && actions.delete(selectedIds)}
         />
-        <div className="export-dropdown">
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".btproj,application/octet-stream"
-            aria-label="Import project file"
-            style={{ display: 'none' }}
-            onChange={handleImportFile}
-          />
-          <button
-            type="button"
-            className="export-button"
-            aria-expanded={importOpen}
-            disabled={Boolean(working)}
-            onClick={() => {
-              setExportOpen(false)
-              setImportOpen((current) => !current)
-            }}
-          >
-            <Upload size={16} />
-            {working === 'import' ? 'Importing' : 'Import'}
-            <ChevronDown size={14} />
-          </button>
-          {importOpen && (
-            <div className="export-menu import-menu">
-              <button type="button" onClick={handleImportPick}>
-                <FileArchive size={15} />
-                <span>Import Project File</span>
-              </button>
-              <button type="button" onClick={openJsonTokenModal}>
-                <Braces size={15} />
-                <span>Import JSON Token</span>
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="export-dropdown">
-          <button
-            type="button"
-            className="export-button"
-            aria-expanded={exportOpen}
-            disabled={Boolean(working)}
-            onClick={() => {
-              setImportOpen(false)
-              setExportOpen((current) => !current)
-            }}
-          >
-            <Download size={16} />
-            {exportButtonLabel}
-            <ChevronDown size={14} />
-          </button>
-          {exportOpen && (
-            <div className="export-menu">
-              <button type="button" onClick={() => handleExport('png')}>
-                <FileImage size={15} />
-                <span>Download PNG</span>
-              </button>
-              <button type="button" onClick={() => handleExport('pdf')}>
-                <FileText size={15} />
-                <span>Download PDF</span>
-              </button>
-              <button type="button" onClick={() => handleExport('project')}>
-                <FileArchive size={15} />
-                <span>Download Project</span>
-              </button>
-              <button type="button" onClick={() => handleExport('token')}>
-                <Braces size={15} />
-                <span>Download JSON Token</span>
-              </button>
-              <button type="button" onClick={handleCopyAiGuide}>
-                <Clipboard size={15} />
-                <span>Copy AI Guide</span>
-              </button>
-              <button type="button" onClick={handleDownloadAiGuide}>
-                <FileText size={15} />
-                <span>Download AI Guide</span>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
       {jsonTokenOpen && (
         <div className="token-modal-backdrop" role="presentation">

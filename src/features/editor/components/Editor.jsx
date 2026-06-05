@@ -3,10 +3,10 @@ import { editorIndicator } from '../constants'
 import { editorResolver } from '../resolver'
 import { EditorWorkspace } from './EditorWorkspace'
 
-export default function Editor() {
+export default function Editor({ presentation = 'full' }) {
   return (
     <CraftEditor resolver={editorResolver} indicator={editorIndicator}>
-      <EditorWorkspace />
+      <EditorWorkspace presentation={presentation} />
     </CraftEditor>
   )
 }

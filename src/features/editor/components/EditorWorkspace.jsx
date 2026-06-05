@@ -7,7 +7,7 @@ import { SelectionMarqueeLayer } from './canvas/SelectionMarqueeLayer'
 import { StaticPagePreview } from './canvas/StaticPagePreview'
 import { ImageBlock, Section, TextBlock } from './canvas/elements'
 import { KeyboardShortcuts } from './KeyboardShortcuts'
-import { Copy, FilePlus2, GripVertical, Trash2 } from 'lucide-react'
+import { Copy, FilePlus2, GripVertical, Monitor, Trash2, X } from 'lucide-react'
 import { LeftSidebar } from './panels/LeftSidebar'
 import { RightToolbar } from './panels/RightToolbar'
 import { BottomComponentToolbar } from './toolbars/BottomComponentToolbar'
@@ -16,6 +16,7 @@ import { isEditableTarget } from '../utils/editorUtils'
 
 const zoomSteps = [0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4]
 const initialPages = [{ id: 'page-1', name: 'Page 1', serialized: null }]
+const desktopNoticeStorageKey = 'builder-thinking-desktop-notice-dismissed'
 
 function getNextZoom(currentZoom, direction) {
   const currentIndex = zoomSteps.findIndex((step) => step >= currentZoom)
@@ -39,13 +40,19 @@ function pageCounterValue(pages) {
   }, 1)
 }
 
-export function EditorWorkspace() {
+export function EditorWorkspace({ presentation = 'full' }) {
   const [activeTool, setActiveTool] = useState('pointer')
   const [activeFrameData, setActiveFrameData] = useState(null)
   const [activePageId, setActivePageId] = useState('page-1')
   const [pages, setPages] = useState(initialPages)
   const [pageLoadToken, setPageLoadToken] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [isCompactViewport, setIsCompactViewport] = useState(false)
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
+  const [desktopNoticeDismissed, setDesktopNoticeDismissed] = useState(() => (
+    window.localStorage.getItem(desktopNoticeStorageKey) === 'true'
+  ))
   const activePageIdRef = useRef('page-1')
   const blankPageSerializedRef = useRef(null)
   const hydratingPageRef = useRef(false)
@@ -58,6 +65,10 @@ export function EditorWorkspace() {
     nodes: state.nodes,
     selectedIds: state.events.selected ? Array.from(state.events.selected) : [],
   }))
+  const dismissDesktopNotice = useCallback(() => {
+    window.localStorage.setItem(desktopNoticeStorageKey, 'true')
+    setDesktopNoticeDismissed(true)
+  }, [])
   const zoomIn = useCallback(() => setZoom((current) => getNextZoom(current, 1)), [])
   const zoomOut = useCallback(() => setZoom((current) => getNextZoom(current, -1)), [])
   const resetZoom = useCallback(() => setZoom(1), [])
@@ -289,6 +300,19 @@ export function EditorWorkspace() {
   }, [resetZoom, zoomIn, zoomOut])
 
   useEffect(() => {
+    const media = window.matchMedia('(max-width: 900px)')
+    const syncViewport = () => {
+      setIsCompactViewport(media.matches)
+      setLeftPanelCollapsed(media.matches)
+      setRightPanelCollapsed(media.matches)
+    }
+
+    syncViewport()
+    media.addEventListener('change', syncViewport)
+    return () => media.removeEventListener('change', syncViewport)
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.defaultPrevented || isEditableTarget(event.target)) return
       if (event.key !== 'Delete' && event.key !== 'Backspace') return
@@ -303,10 +327,30 @@ export function EditorWorkspace() {
   }, [deletePage, selectedIds])
 
   return (
-    <div className="workspace">
+    <div className={`workspace ${presentation === 'demo' ? 'is-demo' : ''}`}>
       <KeyboardShortcuts />
       <ClipboardPasteLayer />
-      <LeftSidebar />
+      {isCompactViewport && !desktopNoticeDismissed ? (
+        <div className="desktop-notice-backdrop" role="presentation">
+          <section className="desktop-notice" role="dialog" aria-modal="true" aria-labelledby="desktop-notice-title">
+            <button type="button" className="desktop-notice-close" aria-label="Close desktop notice" onClick={dismissDesktopNotice}>
+              <X size={18} />
+            </button>
+            <div className="desktop-notice-icon">
+              <Monitor size={22} />
+            </div>
+            <h2 id="desktop-notice-title">Desktop recommended</h2>
+            <p>Builder Thinking works best on desktop. Tablet and mobile can be used for quick edits, but detailed editing is better on a larger screen.</p>
+            <button type="button" className="desktop-notice-action" onClick={dismissDesktopNotice}>
+              Continue anyway
+            </button>
+          </section>
+        </div>
+      ) : null}
+      <LeftSidebar
+        collapsed={isCompactViewport && leftPanelCollapsed}
+        onToggleCollapsed={() => setLeftPanelCollapsed((collapsed) => !collapsed)}
+      />
       <section className="middle">
         <TopBar
           activePageId={activePageId}
@@ -393,7 +437,10 @@ export function EditorWorkspace() {
           <BottomComponentToolbar activeTool={activeTool} onToolChange={setActiveTool} />
         </div>
       </section>
-      <RightToolbar />
+      <RightToolbar
+        collapsed={isCompactViewport && rightPanelCollapsed}
+        onToggleCollapsed={() => setRightPanelCollapsed((collapsed) => !collapsed)}
+      />
     </div>
   )
 }
