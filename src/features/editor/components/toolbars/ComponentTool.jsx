@@ -1,14 +1,11 @@
-import { useEditor } from '@craftjs/core'
-
-export function ComponentTool({ icon: Icon, label, element }) {
-  const { connectors } = useEditor()
-
+export function ComponentTool({ active = false, icon: Icon, label, onClick }) {
   return (
     <button
-      ref={(ref) => ref && connectors.create(ref, element)}
-      className="component-tool"
+      type="button"
+      className={`component-tool ${active ? 'active' : ''}`}
       aria-label={label}
       data-tip={label}
+      onClick={onClick}
     >
       <Icon size={18} />
     </button>

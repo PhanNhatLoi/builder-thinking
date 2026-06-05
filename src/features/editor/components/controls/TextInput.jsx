@@ -1,3 +1,3 @@
-export function TextInput({ value = '', onChange }) {
-  return <input type="text" value={value} onChange={(event) => onChange(event.target.value)} />
+export function TextInput({ value = '', onChange, placeholder }) {
+  return <input type="text" value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
 }

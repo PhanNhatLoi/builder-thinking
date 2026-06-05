@@ -22,9 +22,26 @@ import { Field } from '../controls/Field'
 import { NumberInput } from '../controls/NumberInput'
 import { TextInput } from '../controls/TextInput'
 import { InspectorSection } from './InspectorSection'
+import { RootPageInspector } from './RootPageInspector'
+import { SectionInspector } from './SectionInspector'
+import { ShapeInspector } from './ShapeInspector'
+import { TextInspector } from './TextInspector'
 
 export function Inspector() {
-  const { actions, selectedNode } = useSelectedNode()
+  const { actions, selectedIds, selectedNode } = useSelectedNode()
+
+  if (selectedIds.length > 1) {
+    return (
+      <section className="inspector empty-panel">
+        <PanelRight size={18} />
+        <p>{selectedIds.length} items selected.</p>
+        <button type="button" className="group-delete-button" onClick={() => actions.delete(selectedIds.filter((id) => id !== 'ROOT'))}>
+          <Trash2 size={15} />
+          Delete group
+        </button>
+      </section>
+    )
+  }
 
   if (!selectedNode) {
     return (
@@ -39,6 +56,22 @@ export function Inspector() {
   const name = nodeTitle(selectedNode)
   const isRoot = selectedNode.id === 'ROOT'
   const layout = props.layout || 'flow'
+
+  if (isRoot) {
+    return <RootPageInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Section') {
+    return <SectionInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Text') {
+    return <TextInspector actions={actions} selectedNode={selectedNode} />
+  }
+
+  if (name === 'Shape') {
+    return <ShapeInspector actions={actions} selectedNode={selectedNode} />
+  }
 
   const setProp = (key, value) => {
     actions.history.throttle(400).setProp(selectedNode.id, (draft) => {

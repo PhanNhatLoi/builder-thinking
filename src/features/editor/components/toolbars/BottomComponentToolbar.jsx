@@ -1,16 +1,36 @@
-import { Element } from '@craftjs/core'
-import { Image as ImageIcon, LayoutTemplate, Rows3, Square, Type } from 'lucide-react'
-import { ButtonBlock, CardBlock, ImageBlock, Section, TextBlock } from '../canvas/elements'
+import { Circle, Image as ImageIcon, LayoutTemplate, MousePointer2, Pentagon, Slash, Square, Type } from 'lucide-react'
 import { ComponentTool } from './ComponentTool'
 
-export function BottomComponentToolbar() {
+const tools = [
+  ['pointer', MousePointer2, 'Pointer'],
+  ['section', LayoutTemplate, 'Section'],
+  ['text', Type, 'Text'],
+  ['shape-rectangle', Square, 'Rectangle'],
+  ['shape-ellipse', Circle, 'Ellipse'],
+  ['shape-line', Slash, 'Line'],
+  ['shape-polygon', Pentagon, 'Polygon'],
+  ['shape-image', ImageIcon, 'Image shape'],
+]
+
+const imageToolEventName = 'builder-thinking:open-image-tool'
+
+export function BottomComponentToolbar({ activeTool, onToolChange }) {
   return (
     <div className="bottom-tools" aria-label="Components toolbar">
-      <ComponentTool icon={Rows3} label="Section" element={<Element is={Section} canvas />} />
-      <ComponentTool icon={Type} label="Text" element={<TextBlock />} />
-      <ComponentTool icon={Square} label="Button" element={<ButtonBlock />} />
-      <ComponentTool icon={ImageIcon} label="Image" element={<ImageBlock />} />
-      <ComponentTool icon={LayoutTemplate} label="Card" element={<CardBlock />} />
+      {tools.map(([tool, Icon, label]) => (
+        <ComponentTool
+          key={tool}
+          active={activeTool === tool}
+          icon={Icon}
+          label={label}
+          onClick={() => {
+            onToolChange(tool)
+            if (tool === 'shape-image') {
+              window.dispatchEvent(new Event(imageToolEventName))
+            }
+          }}
+        />
+      ))}
     </div>
   )
 }
