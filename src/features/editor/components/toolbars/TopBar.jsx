@@ -1,5 +1,5 @@
 import { useEditor } from '@craftjs/core'
-import { Braces, ChevronDown, ChevronRight, Clipboard, Download, FileArchive, FileImage, FileText, FolderOpen, Redo2, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { Braces, CheckCircle2, ChevronDown, ChevronRight, Clipboard, Clock3, Download, FileArchive, FileImage, FileText, FolderOpen, Redo2, Save, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import { useRef, useState } from 'react'
 import aiDesignGuide from '../../ai/AI_DESIGN_GUIDE.md?raw'
 import { exportDocument, parseProjectFile, parseProjectToken } from '../../export/exportDocument'
@@ -7,9 +7,12 @@ import { IconButton } from './IconButton'
 
 export function TopBar({
   activePageId,
+  autosaveError = '',
+  autosaveStatus = 'idle',
   getProjectExportData,
   onProjectImport,
   onPageChange,
+  onProjectSave,
   pages = [],
   zoom = 1,
   onZoomIn,
@@ -96,6 +99,14 @@ export function TopBar({
     : working
       ? `Exporting ${working.toUpperCase()}`
       : 'File'
+  const autosaveLabel = {
+    idle: 'Save',
+    pending: 'Save',
+    saving: 'Saving...',
+    saved: 'Saved',
+    error: autosaveError || 'Autosave failed',
+  }[autosaveStatus]
+  const showSaveControl = typeof onProjectSave === 'function'
 
   return (
     <header className="top-bar">
@@ -209,6 +220,18 @@ export function TopBar({
           onClick={() => selectedIds.length && actions.delete(selectedIds)}
         />
       </div>
+      {showSaveControl ? (
+        <button
+          type="button"
+          className={`autosave-status ${autosaveStatus}`}
+          disabled={autosaveStatus === 'saving'}
+          title={`${autosaveLabel} (Cmd/Ctrl+S)`}
+          onClick={onProjectSave}
+        >
+          {autosaveStatus === 'saved' ? <CheckCircle2 size={16} /> : autosaveStatus === 'pending' ? <Clock3 size={16} /> : <Save size={16} />}
+          <span>{autosaveLabel}</span>
+        </button>
+      ) : null}
       {jsonTokenOpen && (
         <div className="token-modal-backdrop" role="presentation">
           <div className="token-modal" role="dialog" aria-modal="true" aria-label="Import JSON token">

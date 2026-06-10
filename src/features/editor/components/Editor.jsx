@@ -3,10 +3,30 @@ import { editorIndicator } from '../constants'
 import { editorResolver } from '../resolver'
 import { EditorWorkspace } from './EditorWorkspace'
 
-export default function Editor({ presentation = 'full' }) {
+export default function Editor({
+  autosaveError = '',
+  autosaveStatus = 'idle',
+  initialProject = null,
+  onBack,
+  onProjectChange,
+  onProjectNameSave,
+  onProjectSave,
+  presentation = 'full',
+  projectName = '',
+}) {
   return (
     <CraftEditor resolver={editorResolver} indicator={editorIndicator}>
-      <EditorWorkspace presentation={presentation} />
+      <EditorWorkspace
+        autosaveError={autosaveError}
+        autosaveStatus={autosaveStatus}
+        initialProject={initialProject}
+        onBack={onBack}
+        onProjectChange={onProjectChange}
+        onProjectNameSave={onProjectNameSave}
+        onProjectSave={onProjectSave}
+        presentation={presentation}
+        projectName={projectName}
+      />
     </CraftEditor>
   )
 }

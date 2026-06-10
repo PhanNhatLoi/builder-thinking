@@ -8,6 +8,19 @@ const projectFileName = 'builder-thinking.btproj'
 const projectTokenFileName = 'builder-thinking-token.json'
 const projectFileType = 'builder-thinking.project'
 const projectEncryptionSecret = 'builder-thinking-project-format-v1'
+const componentNameMap = {
+  CanvasRoot: 'CanvasRoot',
+  Page: 'CanvasRoot',
+  Section: 'Section',
+  Text: 'TextBlock',
+  TextBlock: 'TextBlock',
+  Image: 'ImageBlock',
+  ImageBlock: 'ImageBlock',
+  Shape: 'ShapeBlock',
+  ShapeBlock: 'ShapeBlock',
+  Icon: 'SvgIconBlock',
+  SvgIconBlock: 'SvgIconBlock',
+}
 
 function pageFileName(index, extension) {
   return `page-${String(index + 1).padStart(2, '0')}.${extension}`
@@ -28,14 +41,23 @@ function downloadText(text, fileName, type = 'text/plain') {
   downloadBlob(new Blob([text], { type }), fileName)
 }
 
-function projectPayload(projectData) {
-  return {
+function projectPayload(projectData, options = {}) {
+  const payload = {
     schema: projectFileType,
     version: projectFileVersion,
-    exportedAt: new Date().toISOString(),
     activePageId: projectData.activePageId,
     pages: projectData.pages,
   }
+
+  if (options.includeExportedAt) {
+    payload.exportedAt = new Date().toISOString()
+  }
+
+  return payload
+}
+
+export function stringifyProjectToken(projectData) {
+  return JSON.stringify(projectPayload(projectData))
 }
 
 function encodeBase64(bytes) {
@@ -188,20 +210,62 @@ async function exportProject(projectData) {
     throw new Error('No project data found to export.')
   }
 
-  const encryptedPayload = await encryptProjectPayload(projectPayload(projectData))
+  const encryptedPayload = await encryptProjectPayload(projectPayload(projectData, { includeExportedAt: true }))
   const blob = new Blob([JSON.stringify(encryptedPayload)], { type: 'application/octet-stream' })
   downloadBlob(blob, projectFileName)
+}
+
+function inferNodeComponentName(id, node) {
+  const currentName = typeof node?.type === 'string' ? node.type : node?.type?.resolvedName
+  if (componentNameMap[currentName]) return componentNameMap[currentName]
+
+  const displayName = node?.displayName || node?.name
+  if (componentNameMap[displayName]) return componentNameMap[displayName]
+
+  if (id === 'ROOT') return 'CanvasRoot'
+  if (node?.props?.richText || node?.props?.text) return 'TextBlock'
+  if (node?.props?.iconName || node?.props?.icon) return 'SvgIconBlock'
+  if (node?.props?.shapeType || node?.props?.shape) return 'ShapeBlock'
+  if (node?.props?.src || node?.props?.imageUrl) return 'ImageBlock'
+  if (node?.isCanvas) return 'Section'
+
+  return 'ShapeBlock'
+}
+
+function normalizeSerializedNodeTypes(serialized) {
+  const nodes = typeof serialized === 'string' ? JSON.parse(serialized) : serialized
+  if (!nodes?.ROOT) {
+    return typeof serialized === 'string' ? serialized : JSON.stringify(serialized)
+  }
+
+  const normalizedNodes = Object.fromEntries(
+    Object.entries(nodes).map(([id, node]) => [
+      id,
+      {
+        ...node,
+        type: {
+          resolvedName: inferNodeComponentName(id, node),
+        },
+      },
+    ]),
+  )
+
+  return JSON.stringify(normalizedNodes)
+}
+
+function normalizeProjectPages(pages) {
+  return pages.map((page, index) => ({
+    id: page.id || `page-${index + 1}`,
+    name: page.name || `Page ${index + 1}`,
+    serialized: page.serialized ? normalizeSerializedNodeTypes(page.serialized) : null,
+  }))
 }
 
 function normalizeProjectPayload(payload) {
   if (payload?.schema === projectFileType && Array.isArray(payload.pages)) {
     return {
       ...payload,
-      pages: payload.pages.map((page, index) => ({
-        id: page.id || `page-${index + 1}`,
-        name: page.name || `Page ${index + 1}`,
-        serialized: typeof page.serialized === 'string' ? page.serialized : JSON.stringify(page.serialized),
-      })),
+      pages: normalizeProjectPages(payload.pages),
     }
   }
 
@@ -223,7 +287,7 @@ function normalizeProjectPayload(payload) {
         {
           id: 'page-1',
           name: 'Imported Page',
-          serialized: JSON.stringify(payload),
+          serialized: normalizeSerializedNodeTypes(payload),
         },
       ],
     }
@@ -242,13 +306,13 @@ function parseJsonTokenValue(value) {
 
 export async function parseProjectFile(file) {
   const filePayload = JSON.parse(await file.text())
-  return decryptProjectPayload(filePayload)
+  return normalizeProjectPayload(await decryptProjectPayload(filePayload))
 }
 
 export async function parseProjectToken(token) {
   const payload = parseJsonTokenValue(token)
   if (payload?.type === projectFileType) {
-    return decryptProjectPayload(payload)
+    return normalizeProjectPayload(await decryptProjectPayload(payload))
   }
   return normalizeProjectPayload(payload)
 }
@@ -273,7 +337,7 @@ export async function exportDocument(format, projectData = null) {
     if (!projectData?.pages?.length) {
       throw new Error('No project data found to export.')
     }
-    downloadText(JSON.stringify(projectPayload(projectData), null, 2), projectTokenFileName, 'application/json')
+    downloadText(JSON.stringify(projectPayload(projectData, { includeExportedAt: true }), null, 2), projectTokenFileName, 'application/json')
     return
   }
 

@@ -1,10 +1,31 @@
-import { Box, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, Box, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { AssetsPanel } from '../assets/AssetsPanel'
 import { LayersPanel } from '../layers/LayersPanel'
 
-export function LeftSidebar({ collapsed = false, onToggleCollapsed }) {
+export function LeftSidebar({ collapsed = false, onBack, onProjectNameSave, onToggleCollapsed, projectName = '' }) {
   const [activeTab, setActiveTab] = useState('layers')
+  const [draftProjectName, setDraftProjectName] = useState(projectName)
+  const [isSavingName, setIsSavingName] = useState(false)
+
+  useEffect(() => {
+    setDraftProjectName(projectName)
+  }, [projectName])
+
+  const saveProjectName = async () => {
+    const nextName = draftProjectName.trim()
+    if (!onProjectNameSave || !nextName || nextName === projectName) {
+      setDraftProjectName(projectName)
+      return
+    }
+
+    setIsSavingName(true)
+    try {
+      await onProjectNameSave(nextName)
+    } finally {
+      setIsSavingName(false)
+    }
+  }
 
   return (
     <>
@@ -18,9 +39,28 @@ export function LeftSidebar({ collapsed = false, onToggleCollapsed }) {
       </button>
       <aside className={`left-panel ${collapsed ? 'collapsed' : ''}`}>
         <div className="left-panel-header">
-          <div className="brand-mark">
-            <Box size={18} />
-          </div>
+          {onBack ? (
+            <button type="button" className="brand-mark" aria-label="Back" onClick={onBack}>
+              <ArrowLeft size={18} />
+            </button>
+          ) : (
+            <div className="brand-mark">
+              <Box size={18} />
+            </div>
+          )}
+          <input
+            className="project-title-input"
+            value={draftProjectName}
+            aria-label="Project name"
+            disabled={isSavingName}
+            onBlur={saveProjectName}
+            onChange={(event) => setDraftProjectName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.currentTarget.blur()
+              }
+            }}
+          />
           <button
             type="button"
             className="left-panel-toggle"

@@ -40,7 +40,17 @@ function pageCounterValue(pages) {
   }, 1)
 }
 
-export function EditorWorkspace({ presentation = 'full' }) {
+export function EditorWorkspace({
+  autosaveError = '',
+  autosaveStatus = 'idle',
+  initialProject = null,
+  onBack,
+  onProjectChange,
+  onProjectNameSave,
+  onProjectSave,
+  presentation = 'full',
+  projectName = '',
+}) {
   const [activeTool, setActiveTool] = useState('pointer')
   const [activeFrameData, setActiveFrameData] = useState(null)
   const [activePageId, setActivePageId] = useState('page-1')
@@ -50,6 +60,7 @@ export function EditorWorkspace({ presentation = 'full' }) {
   const [isCompactViewport, setIsCompactViewport] = useState(false)
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
+  const [projectChangeVersion, setProjectChangeVersion] = useState(0)
   const [desktopNoticeDismissed, setDesktopNoticeDismissed] = useState(() => (
     window.localStorage.getItem(desktopNoticeStorageKey) === 'true'
   ))
@@ -57,10 +68,12 @@ export function EditorWorkspace({ presentation = 'full' }) {
   const blankPageSerializedRef = useRef(null)
   const hydratingPageRef = useRef(false)
   const lastWheelZoomAtRef = useRef(0)
+  const initialProjectRef = useRef(null)
   const pageCounterRef = useRef(1)
   const pendingPageLoadRef = useRef(null)
   const pagesRef = useRef(initialPages)
   const saveTimerRef = useRef(null)
+  const changeTimerRef = useRef(null)
   const { actions, nodes, query, selectedIds } = useEditor((state) => ({
     nodes: state.nodes,
     selectedIds: state.events.selected ? Array.from(state.events.selected) : [],
@@ -93,6 +106,7 @@ export function EditorWorkspace({ presentation = 'full' }) {
     const nextPages = typeof updater === 'function' ? updater(pagesRef.current) : updater
     pagesRef.current = nextPages
     setPages(nextPages)
+    setProjectChangeVersion((version) => version + 1)
     return nextPages
   }, [])
 
@@ -263,6 +277,10 @@ export function EditorWorkspace({ presentation = 'full' }) {
     )),
   }), [persistActivePage])
 
+  const saveProject = useCallback(() => {
+    return onProjectSave?.(getProjectExportData())
+  }, [getProjectExportData, onProjectSave])
+
   const importProject = useCallback((projectData) => {
     if (!projectData?.pages?.length) return
 
@@ -277,6 +295,24 @@ export function EditorWorkspace({ presentation = 'full' }) {
     updatePages(importedPages)
     loadPage(nextActivePage.id, nextActivePage.serialized || blankPageSerializedRef.current)
   }, [loadPage, updatePages])
+
+  useEffect(() => {
+    if (!initialProject || initialProjectRef.current === initialProject) return
+
+    initialProjectRef.current = initialProject
+    importProject(initialProject)
+  }, [importProject, initialProject])
+
+  useEffect(() => {
+    if (!onProjectChange || hydratingPageRef.current) return undefined
+
+    window.clearTimeout(changeTimerRef.current)
+    changeTimerRef.current = window.setTimeout(() => {
+      onProjectChange(getProjectExportData())
+    }, 350)
+
+    return () => window.clearTimeout(changeTimerRef.current)
+  }, [getProjectExportData, nodes, onProjectChange, projectChangeVersion])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -298,6 +334,19 @@ export function EditorWorkspace({ presentation = 'full' }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [resetZoom, zoomIn, zoomOut])
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented || (!event.metaKey && !event.ctrlKey)) return
+      if (event.key.toLowerCase() !== 's') return
+
+      event.preventDefault()
+      saveProject()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [saveProject])
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 900px)')
@@ -349,14 +398,20 @@ export function EditorWorkspace({ presentation = 'full' }) {
       ) : null}
       <LeftSidebar
         collapsed={isCompactViewport && leftPanelCollapsed}
+        onBack={onBack}
+        onProjectNameSave={onProjectNameSave}
         onToggleCollapsed={() => setLeftPanelCollapsed((collapsed) => !collapsed)}
+        projectName={projectName}
       />
       <section className="middle">
         <TopBar
           activePageId={activePageId}
+          autosaveError={autosaveError}
+          autosaveStatus={autosaveStatus}
           getProjectExportData={getProjectExportData}
           onProjectImport={importProject}
           onPageChange={openPage}
+          onProjectSave={saveProject}
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
           onZoomReset={resetZoom}
