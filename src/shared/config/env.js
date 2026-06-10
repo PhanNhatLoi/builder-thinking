@@ -1,6 +1,6 @@
 export const env = {
   appName: import.meta.env.VITE_APP_NAME || "Builder Thinking",
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:4001/api",
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || "http://localhost:4001/api",
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
   openApiKey: import.meta.env.VITE_GPT_API_KEY || "",
   mode: import.meta.env.MODE,

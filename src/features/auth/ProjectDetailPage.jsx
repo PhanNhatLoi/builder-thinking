@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from '../editor'
 import { parseProjectToken, stringifyProjectToken } from '../editor/export/exportDocument'
 import { getProjectDetail, updateProject } from './api'
-import { hasAccessToken } from '../../shared/utils/authCookies'
 
 const autosaveDelayMs = 5000
 
@@ -23,11 +22,6 @@ export function ProjectDetailPage({ publicId }) {
   const loadProject = useCallback(async () => {
     if (!decodedPublicId) {
       setError('Missing project id.')
-      return
-    }
-
-    if (!hasAccessToken()) {
-      setError('Missing access token. Please sign in again.')
       return
     }
 

@@ -1,6 +1,6 @@
 import { endpoints } from './endpoints'
 import { env } from '../config/env'
-import { clearAuthCookies, getCookie, setAuthCookies } from '../utils/authCookies'
+import { clearAuthCookies } from '../utils/authCookies'
 
 function createApiUrl(path, query) {
   const baseUrl = env.apiBaseUrl.replace(/\/$/, '')
@@ -30,56 +30,39 @@ async function parseResponse(response) {
 }
 
 async function refreshTokens() {
-  const refreshToken = getCookie('refreshToken')
-
-  if (!refreshToken) {
-    return null
-  }
-
   const response = await fetch(createApiUrl(endpoints.auth.refreshToken), {
+    credentials: 'include',
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ refreshToken }),
   })
-  const data = await parseResponse(response)
 
-  setAuthCookies(data)
-  return data.accessToken
+  return parseResponse(response)
 }
 
 export async function apiFetch(path, options = {}) {
   const { query, retryOnUnauthorized = true, ...fetchOptions } = options
-  const token = getCookie('accessToken')
   const headers = new Headers(fetchOptions.headers)
 
   if (!headers.has('Content-Type') && fetchOptions.body) {
     headers.set('Content-Type', 'application/json')
   }
 
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
-
   const response = await fetch(createApiUrl(path, query), {
     ...fetchOptions,
+    credentials: 'include',
     headers,
   })
 
   if (response.status === 401 && retryOnUnauthorized) {
     try {
-      const nextAccessToken = await refreshTokens()
+      await refreshTokens()
 
-      if (nextAccessToken) {
-        headers.set('Authorization', `Bearer ${nextAccessToken}`)
-        const retryResponse = await fetch(createApiUrl(path, query), {
-          ...fetchOptions,
-          headers,
-        })
+      const retryResponse = await fetch(createApiUrl(path, query), {
+        ...fetchOptions,
+        credentials: 'include',
+        headers,
+      })
 
-        return parseResponse(retryResponse)
-      }
+      return parseResponse(retryResponse)
     } catch {
       clearAuthCookies()
     }

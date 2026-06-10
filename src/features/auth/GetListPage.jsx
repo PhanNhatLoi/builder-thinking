@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Edit3, FileText, FolderKanban, LayoutDashboard, LogOut, Plus, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { createProject, listProjects } from './api'
-import { clearAuthCookies, hasAccessToken } from '../../shared/utils/authCookies'
+import { clearAuthCookies } from '../../shared/utils/authCookies'
 
 function formatProjectDate(value) {
   if (!value) return 'No date'
@@ -27,11 +27,6 @@ export function GetListPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const loadProjects = async () => {
-    if (!hasAccessToken()) {
-      setError('Missing access token. Please sign in again.')
-      return
-    }
-
     setError('')
     setIsLoading(true)
 
@@ -55,11 +50,6 @@ export function GetListPage() {
   }
 
   const createNewProject = async () => {
-    if (!hasAccessToken()) {
-      setError('Missing access token. Please sign in again.')
-      return
-    }
-
     setError('')
     setIsCreating(true)
 
