@@ -1,10 +1,11 @@
 import { useEditor } from '@craftjs/core'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ShapeBlock } from './elements'
 import { isEditableTarget } from '../../utils/editorUtils'
 
 const maxPasteSize = 360
 const fallbackSize = { width: 240, height: 160 }
+const pasteOffset = 24
 
 function getElementScale(element) {
   if (!element?.offsetWidth) return 1
@@ -126,6 +127,91 @@ function getLayoutProps(nodes, parentId, surface, size) {
   }
 }
 
+function createNodeIdMap(tree) {
+  return Object.fromEntries(
+    Object.keys(tree.nodes).map((id) => [
+      id,
+      `${id}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    ]),
+  )
+}
+
+function remapLinkedNodes(linkedNodes, idMap) {
+  return Object.fromEntries(
+    Object.entries(linkedNodes || {}).map(([key, value]) => [key, idMap[value] || value]),
+  )
+}
+
+function cloneNodeTree(tree, nodes, parentId) {
+  const idMap = createNodeIdMap(tree)
+  const parentLayoutMode = nodes[parentId]?.data.props.layoutMode || 'vertical'
+  const clonedNodes = Object.fromEntries(
+    Object.entries(tree.nodes).map(([oldId, node]) => {
+      const nextId = idMap[oldId]
+      const isRoot = oldId === tree.rootNodeId
+      const nextProps = { ...(node.data.props || {}) }
+
+      if (isRoot) {
+        if (parentLayoutMode === 'free' && nextProps.layout === 'fixed') {
+          nextProps.x = Math.max(0, (nextProps.x || 0) + pasteOffset)
+          nextProps.y = Math.max(0, (nextProps.y || 0) + pasteOffset)
+        } else if (parentLayoutMode !== 'free') {
+          nextProps.layout = 'flow'
+        }
+      }
+
+      return [
+        nextId,
+        {
+          ...node,
+          id: nextId,
+          dom: null,
+          events: {
+            selected: false,
+            dragged: false,
+            hovered: false,
+          },
+          data: {
+            ...node.data,
+            parent: isRoot ? null : idMap[node.data.parent] || node.data.parent,
+            props: nextProps,
+            nodes: (node.data.nodes || []).map((id) => idMap[id] || id),
+            linkedNodes: remapLinkedNodes(node.data.linkedNodes, idMap),
+          },
+        },
+      ]
+    }),
+  )
+
+  return {
+    rootNodeId: idMap[tree.rootNodeId],
+    nodes: clonedNodes,
+  }
+}
+
+function topLevelSelectedIds(nodes, selectedIds) {
+  const selectedSet = new Set(selectedIds)
+  const selectedTopLevelIds = selectedIds.filter((id) => {
+    let parentId = nodes[id]?.data.parent
+
+    while (parentId) {
+      if (selectedSet.has(parentId)) return false
+      parentId = nodes[parentId]?.data.parent
+    }
+
+    return true
+  })
+
+  return selectedTopLevelIds.sort((firstId, secondId) => {
+    const firstParentId = nodes[firstId]?.data.parent
+    const secondParentId = nodes[secondId]?.data.parent
+    if (firstParentId !== secondParentId) return 0
+
+    const siblings = nodes[firstParentId]?.data.nodes || []
+    return siblings.indexOf(firstId) - siblings.indexOf(secondId)
+  })
+}
+
 async function clipboardImageSource(clipboardData) {
   const items = Array.from(clipboardData?.items || [])
   const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'))
@@ -141,22 +227,49 @@ async function clipboardImageSource(clipboardData) {
 
 export function ClipboardPasteLayer() {
   const { actions, query } = useEditor()
+  const copiedTreesRef = useRef([])
 
   useEffect(() => {
-    const handlePaste = async (event) => {
+    const handleKeyDown = (event) => {
       if (event.defaultPrevented || isEditableTarget(event.target)) return
+      if ((!event.metaKey && !event.ctrlKey) || event.key.toLowerCase() !== 'c') return
 
-      const imageSrc = await clipboardImageSource(event.clipboardData)
-      if (!imageSrc) return
+      const state = query.getState()
+      const selectedIds = state.events.selected ? Array.from(state.events.selected).filter((id) => id !== 'ROOT') : []
+      const copiedIds = topLevelSelectedIds(state.nodes, selectedIds).filter((id) => state.nodes[id])
+      if (!copiedIds.length) return
 
       event.preventDefault()
-      event.stopPropagation()
+      copiedTreesRef.current = copiedIds.map((id) => query.node(id).toNodeTree())
+    }
+
+    const handlePaste = async (event) => {
+      if (event.defaultPrevented || isEditableTarget(event.target)) return
 
       const state = query.getState()
       const nodes = state.nodes
       const selectedIds = state.events.selected ? Array.from(state.events.selected) : []
       const { parentId, surface } = resolvePasteTarget(nodes, selectedIds)
       if (!surface) return
+
+      if (copiedTreesRef.current.length) {
+        event.preventDefault()
+        event.stopPropagation()
+
+        const pastedRootIds = copiedTreesRef.current.map((copiedTree) => {
+          const tree = cloneNodeTree(copiedTree, nodes, parentId)
+          actions.addNodeTree(tree, parentId)
+          return tree.rootNodeId
+        })
+        actions.selectNode(pastedRootIds)
+        return
+      }
+
+      const imageSrc = await clipboardImageSource(event.clipboardData)
+      if (!imageSrc) return
+
+      event.preventDefault()
+      event.stopPropagation()
 
       const naturalSize = await loadImageSize(imageSrc)
       const size = fitSize(naturalSize, surface)
@@ -178,8 +291,12 @@ export function ClipboardPasteLayer() {
       actions.selectNode(tree.rootNodeId)
     }
 
+    window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('paste', handlePaste)
-    return () => window.removeEventListener('paste', handlePaste)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('paste', handlePaste)
+    }
   }, [actions, query])
 
   return null

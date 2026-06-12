@@ -42,7 +42,7 @@ export async function apiFetch(path, options = {}) {
   const { query, retryOnUnauthorized = true, ...fetchOptions } = options
   const headers = new Headers(fetchOptions.headers)
 
-  if (!headers.has('Content-Type') && fetchOptions.body) {
+  if (!headers.has('Content-Type') && fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
 
@@ -79,6 +79,12 @@ export const axiosClient = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  postForm: (path, body, options) =>
+    apiFetch(path, {
+      ...options,
+      method: 'POST',
+      body,
+    }),
   put: (path, body, options) =>
     apiFetch(path, {
       ...options,
@@ -91,4 +97,5 @@ export const axiosClient = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  delete: (path, options) => apiFetch(path, { ...options, method: 'DELETE' }),
 }

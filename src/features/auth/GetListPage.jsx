@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Edit3, FileText, FolderKanban, LayoutDashboard, LogOut, Plus, RefreshCcw, ShieldAlert } from 'lucide-react'
-import { createProject, listProjects } from './api'
+import { Edit3, FileText, FolderKanban, LayoutDashboard, LogOut, Plus, RefreshCcw, ShieldAlert, Trash2, X } from 'lucide-react'
+import { createProject, deleteProject, listProjects } from './api'
 import { clearAuthCookies } from '../../shared/utils/authCookies'
 
 function formatProjectDate(value) {
@@ -23,6 +23,8 @@ function projectName(project, index) {
 export function GetListPage() {
   const [projects, setProjects] = useState(null)
   const [error, setError] = useState('')
+  const [confirmDeleteProject, setConfirmDeleteProject] = useState(null)
+  const [deletingPublicId, setDeletingPublicId] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -66,6 +68,38 @@ export function GetListPage() {
       setError(err.message || 'Could not create project.')
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const requestDeleteProject = (project, index) => {
+    setConfirmDeleteProject({
+      ...project,
+      displayName: projectName(project, index),
+      publicId: project.publicId || project.hashkeyid,
+    })
+  }
+
+  const confirmDelete = async () => {
+    const publicId = confirmDeleteProject?.publicId
+    if (!publicId || deletingPublicId) return
+
+    setError('')
+    setDeletingPublicId(publicId)
+
+    try {
+      await deleteProject(publicId)
+      setProjects((currentProjects) => currentProjects
+        ? {
+            ...currentProjects,
+            items: (currentProjects.items || []).filter((project) => (project.publicId || project.hashkeyid) !== publicId),
+            total: Math.max(0, (currentProjects.total || 0) - 1),
+          }
+        : currentProjects)
+      setConfirmDeleteProject(null)
+    } catch (err) {
+      setError(err.message || 'Could not delete project.')
+    } finally {
+      setDeletingPublicId('')
     }
   }
 
@@ -141,20 +175,30 @@ export function GetListPage() {
                 const name = projectName(project, index)
 
                 return (
-                  <button
-                    type="button"
-                    className="project-card"
-                    key={project.id || projectPublicId}
-                    onClick={() => openProject(projectPublicId)}
-                  >
-                    <span className="project-card-preview" aria-hidden="true">
-                      <FileText size={34} />
-                    </span>
-                    <span className="project-card-body">
-                      <strong>{name}</strong>
-                      <span>Modified {formatProjectDate(project.modifiedDate || project.createdDate)}</span>
-                    </span>
-                  </button>
+                  <article className="project-card" key={project.id || projectPublicId}>
+                    <button
+                      type="button"
+                      className="project-card-open"
+                      onClick={() => openProject(projectPublicId)}
+                    >
+                      <span className="project-card-preview" aria-hidden="true">
+                        <FileText size={34} />
+                      </span>
+                      <span className="project-card-body">
+                        <strong>{name}</strong>
+                        <span>Modified {formatProjectDate(project.modifiedDate || project.createdDate)}</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="project-card-delete"
+                      aria-label={`Delete ${name}`}
+                      disabled={deletingPublicId === projectPublicId}
+                      onClick={() => requestDeleteProject(project, index)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </article>
                 )
               })}
             </div>
@@ -165,6 +209,33 @@ export function GetListPage() {
           )}
         </div>
       </section>
+
+      {confirmDeleteProject ? (
+        <div className="confirm-modal-backdrop" role="presentation">
+          <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-project-title">
+            <div className="confirm-modal-header">
+              <div>
+                <h2 id="delete-project-title">Delete page</h2>
+                <p>This action cannot be undone.</p>
+              </div>
+              <button type="button" className="confirm-modal-close" aria-label="Close" onClick={() => setConfirmDeleteProject(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <p className="confirm-modal-message">
+              Delete <strong>{confirmDeleteProject.displayName}</strong>?
+            </p>
+            <div className="confirm-modal-actions">
+              <button type="button" onClick={() => setConfirmDeleteProject(null)} disabled={Boolean(deletingPublicId)}>
+                Cancel
+              </button>
+              <button type="button" className="danger" onClick={confirmDelete} disabled={Boolean(deletingPublicId)}>
+                {deletingPublicId ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   )
 }

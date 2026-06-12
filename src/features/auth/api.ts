@@ -28,6 +28,24 @@ export function getProjectDetail(publicId: string) {
   return axiosClient.get(endpoints.projects.detail(publicId));
 }
 
+export function getProjectInit(publicId: string) {
+  return axiosClient.get(endpoints.projects.init(publicId));
+}
+
 export function updateProject(publicId: string, payload: any) {
   return axiosClient.patch(endpoints.projects.detail(publicId), payload);
+}
+
+export function deleteProject(publicId: string) {
+  return axiosClient.delete(endpoints.projects.detail(publicId));
+}
+
+export function updateProjectNodes(publicId: string, payload: any) {
+  return axiosClient.patch(endpoints.projects.nodes(publicId), payload);
+}
+
+export function uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return axiosClient.postForm(endpoints.uploads.images, formData);
 }

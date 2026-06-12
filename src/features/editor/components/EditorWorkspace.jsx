@@ -18,6 +18,23 @@ const zoomSteps = [0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4]
 const initialPages = [{ id: 'page-1', name: 'Page 1', serialized: null }]
 const desktopNoticeStorageKey = 'builder-thinking-desktop-notice-dismissed'
 
+function createBlankPageSerialized() {
+  return JSON.stringify({
+    ROOT: {
+      type: {
+        resolvedName: 'CanvasRoot',
+      },
+      isCanvas: true,
+      props: CanvasRoot.craft.props,
+      displayName: CanvasRoot.craft.displayName,
+      custom: {},
+      hidden: false,
+      nodes: [],
+      linkedNodes: {},
+    },
+  })
+}
+
 function getNextZoom(currentZoom, direction) {
   const currentIndex = zoomSteps.findIndex((step) => step >= currentZoom)
   if (direction > 0) {
@@ -65,7 +82,7 @@ export function EditorWorkspace({
     window.localStorage.getItem(desktopNoticeStorageKey) === 'true'
   ))
   const activePageIdRef = useRef('page-1')
-  const blankPageSerializedRef = useRef(null)
+  const blankPageSerializedRef = useRef(createBlankPageSerialized())
   const hydratingPageRef = useRef(false)
   const lastWheelZoomAtRef = useRef(0)
   const initialProjectRef = useRef(null)
@@ -158,9 +175,6 @@ export function EditorWorkspace({
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const serialized = query.serialize()
-      if (!blankPageSerializedRef.current) {
-        blankPageSerializedRef.current = serialized
-      }
 
       updatePages((currentPages) => currentPages.map((page) => (page.id === 'page-1' && !page.serialized ? { ...page, serialized } : page)))
     })
@@ -191,13 +205,13 @@ export function EditorWorkspace({
   }, [loadPage, persistActivePage])
 
   const addBlankPage = useCallback((afterPageId = null) => {
-    const currentSerialized = persistActivePage()
+    persistActivePage()
     const nextIndex = pageCounterRef.current + 1
     pageCounterRef.current = nextIndex
     const nextPage = {
       id: `page-${nextIndex}`,
       name: `Page ${nextIndex}`,
-      serialized: blankPageSerializedRef.current || currentSerialized,
+      serialized: createBlankPageSerialized(),
     }
 
     updatePages((currentPages) => {

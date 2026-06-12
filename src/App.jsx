@@ -26,6 +26,8 @@ export default function App() {
     document.title = env.appName
   }, [])
 
+
+
   useEffect(() => {
     const handleHashChange = () => setScreen(getInitialScreen())
 

@@ -7,5 +7,10 @@ export const endpoints = {
   projects: {
     list: '/projects',
     detail: (publicId) => `/projects/${encodeURIComponent(publicId)}`,
+    init: (publicId) => `/projects/${encodeURIComponent(publicId)}/init`,
+    nodes: (publicId) => `/projects/${encodeURIComponent(publicId)}/nodes`,
+  },
+  uploads: {
+    images: '/uploads/images',
   },
 }
