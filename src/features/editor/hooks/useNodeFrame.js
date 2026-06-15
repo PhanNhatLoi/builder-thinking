@@ -272,6 +272,9 @@ export function useNodeFrame({
     const originY = y;
     const nodeWidth = width || shell.offsetWidth;
     const nodeHeight = height || shell.offsetHeight;
+    const shellRect = shell.getBoundingClientRect();
+    const grabOffsetX = (startX - shellRect.left) / canvasScale;
+    const grabOffsetY = (startY - shellRect.top) / canvasScale;
     const groupIds =
       selectedIds.length > 1 && selectedIds.includes(id)
         ? selectedIds.filter((selectedId) => {
@@ -452,15 +455,17 @@ export function useNodeFrame({
       const nextParentScale = getElementScale(targetSurface);
       const nextParentWidth = nextParentRect.width / nextParentScale;
       const nextParentHeight = nextParentRect.height / nextParentScale;
+      const maxNextX = Math.max(0, nextParentWidth - nodeWidth);
+      const maxNextY = Math.max(0, nextParentHeight - nodeHeight);
       const nextX = clamp(
-        (lastClientX - nextParentRect.left) / nextParentScale,
+        (lastClientX - nextParentRect.left) / nextParentScale - grabOffsetX,
         0,
-        nextParentWidth - nodeWidth,
+        maxNextX,
       );
       const nextY = clamp(
-        (lastClientY - nextParentRect.top) / nextParentScale,
+        (lastClientY - nextParentRect.top) / nextParentScale - grabOffsetY,
         0,
-        nextParentHeight - nodeHeight,
+        maxNextY,
       );
 
       actions.setProp((draft) => {
