@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from '../editor'
 import { parseProjectToken, stringifyProjectToken } from '../editor/export/exportDocument'
-import { getProjectInit, updateProject, updateProjectNodes, uploadImage } from './api'
+import { getProjectInit, getProjectInitPublic, updateProject, updateProjectNodes, uploadImage } from './api'
 
 const autosaveDelayMs = 5000
 const imagePropNames = ['src', 'backgroundImage', 'imageSrc']
@@ -190,13 +190,14 @@ async function uploadLocalImagesForContent(content, changes = null) {
   }
 }
 
-export function ProjectDetailPage({ publicId }) {
+export function ProjectDetailPage({ publicId, templateMode = false }) {
   const [project, setProject] = useState(null)
   const [projectData, setProjectData] = useState(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveStatus, setSaveStatus] = useState('idle')
+  const [templateStatus, setTemplateStatus] = useState('idle')
   const ignoreNextChangeRef = useRef(false)
   const contentVersionRef = useRef(0)
   const hydratedContentRef = useRef('')
@@ -216,6 +217,7 @@ export function ProjectDetailPage({ publicId }) {
     setError('')
     setSaveError('')
     setSaveStatus('idle')
+    setTemplateStatus('idle')
     setProject(null)
     setProjectData(null)
     setIsLoading(true)
@@ -227,7 +229,7 @@ export function ProjectDetailPage({ publicId }) {
     window.clearTimeout(saveTimerRef.current)
 
     try {
-      const detail = await getProjectInit(decodedPublicId)
+      const detail = await (templateMode ? getProjectInitPublic(decodedPublicId) : getProjectInit(decodedPublicId))
       const initialContent = detail.content?.trim() || ''
       const initialProjectData = initialContent ? await parseProjectToken(initialContent) : null
       const normalizedInitialContent = initialProjectData ? stringifyProjectToken(initialProjectData) : ''
@@ -245,7 +247,7 @@ export function ProjectDetailPage({ publicId }) {
     } finally {
       setIsLoading(false)
     }
-  }, [decodedPublicId])
+  }, [decodedPublicId, templateMode])
 
   const saveProjectContent = useCallback(async (nextContent) => {
     if (!decodedPublicId || !nextContent) return
@@ -378,6 +380,22 @@ export function ProjectDetailPage({ publicId }) {
     }
   }, [decodedPublicId, project?.name])
 
+  const handleTemplateChange = useCallback(async (nextTemplate) => {
+    if (!decodedPublicId || templateStatus === 'saving') return
+
+    setSaveError('')
+    setTemplateStatus('saving')
+
+    try {
+      const nextProject = await updateProject(decodedPublicId, { template: nextTemplate })
+      setProject(nextProject)
+      setTemplateStatus('saved')
+    } catch (err) {
+      setSaveError(err.message || 'Could not update template setting.')
+      setTemplateStatus('error')
+    }
+  }, [decodedPublicId, templateStatus])
+
   useEffect(() => {
     loadProject()
   }, [loadProject])
@@ -398,11 +416,14 @@ export function ProjectDetailPage({ publicId }) {
       autosaveError={saveError}
       autosaveStatus={saveStatus}
       initialProject={projectData}
+      isTemplate={Boolean(project?.template)}
       onBack={() => window.history.back()}
       onProjectChange={handleProjectChange}
       onProjectNameSave={handleProjectNameSave}
       onProjectSave={handleProjectSave}
+      onTemplateChange={handleTemplateChange}
       projectName={project?.name}
+      templateStatus={templateStatus}
     />
   )
 }

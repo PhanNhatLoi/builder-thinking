@@ -6,6 +6,7 @@ export const endpoints = {
   },
   projects: {
     list: '/projects',
+    templates: '/projects/templates',
     detail: (publicId) => `/projects/${encodeURIComponent(publicId)}`,
     init: (publicId) => `/projects/${encodeURIComponent(publicId)}/init`,
     nodes: (publicId) => `/projects/${encodeURIComponent(publicId)}/nodes`,

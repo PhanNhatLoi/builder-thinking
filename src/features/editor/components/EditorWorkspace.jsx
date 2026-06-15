@@ -61,12 +61,15 @@ export function EditorWorkspace({
   autosaveError = '',
   autosaveStatus = 'idle',
   initialProject = null,
+  isTemplate = false,
   onBack,
   onProjectChange,
   onProjectNameSave,
   onProjectSave,
+  onTemplateChange,
   presentation = 'full',
   projectName = '',
+  templateStatus = 'idle',
 }) {
   const [activeTool, setActiveTool] = useState('pointer')
   const [activeFrameData, setActiveFrameData] = useState(null)
@@ -75,6 +78,8 @@ export function EditorWorkspace({
   const [pageLoadToken, setPageLoadToken] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [isCompactViewport, setIsCompactViewport] = useState(false)
+  const [isPanningCanvas, setIsPanningCanvas] = useState(false)
+  const [isSpacePanning, setIsSpacePanning] = useState(false)
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
   const [projectChangeVersion, setProjectChangeVersion] = useState(0)
@@ -83,7 +88,10 @@ export function EditorWorkspace({
   ))
   const activePageIdRef = useRef('page-1')
   const blankPageSerializedRef = useRef(createBlankPageSerialized())
+  const canvasPanStopRef = useRef(null)
+  const canvasWorkspaceRef = useRef(null)
   const hydratingPageRef = useRef(false)
+  const isSpacePanningRef = useRef(false)
   const lastWheelZoomAtRef = useRef(0)
   const initialProjectRef = useRef(null)
   const pageCounterRef = useRef(1)
@@ -118,6 +126,48 @@ export function EditorWorkspace({
       zoomOut()
     }
   }, [zoomIn, zoomOut])
+
+  const handleCanvasPanStart = useCallback((event) => {
+    const spacePanActive = isSpacePanningRef.current || event.currentTarget.classList.contains('is-space-panning')
+    if (!spacePanActive || event.button !== 0 || isEditableTarget(event.target) || event.target.closest('button, input, textarea, select')) return
+
+    const workspace = canvasWorkspaceRef.current
+    if (!workspace) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    setIsPanningCanvas(true)
+
+    const originX = event.clientX
+    const originY = event.clientY
+    const originScrollLeft = workspace.scrollLeft
+    const originScrollTop = workspace.scrollTop
+
+    const move = (moveEvent) => {
+      moveEvent.preventDefault()
+      workspace.scrollLeft = originScrollLeft - (moveEvent.clientX - originX)
+      workspace.scrollTop = originScrollTop - (moveEvent.clientY - originY)
+    }
+
+    const stop = () => {
+      setIsPanningCanvas(false)
+      canvasPanStopRef.current = null
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', stop)
+    }
+
+    canvasPanStopRef.current = stop
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', stop)
+  }, [])
+
+  useEffect(() => {
+    const workspace = canvasWorkspaceRef.current
+    if (!workspace) return undefined
+
+    workspace.addEventListener('mousedown', handleCanvasPanStart, { capture: true })
+    return () => workspace.removeEventListener('mousedown', handleCanvasPanStart, { capture: true })
+  }, [handleCanvasPanStart])
 
   const updatePages = useCallback((updater) => {
     const nextPages = typeof updater === 'function' ? updater(pagesRef.current) : updater
@@ -350,6 +400,45 @@ export function EditorWorkspace({
   }, [resetZoom, zoomIn, zoomOut])
 
   useEffect(() => {
+    const stopSpacePan = () => {
+      isSpacePanningRef.current = false
+      setIsSpacePanning(false)
+      setIsPanningCanvas(false)
+      canvasPanStopRef.current?.()
+    }
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented || event.code !== 'Space' || isEditableTarget(event.target) || event.target.closest?.('button, input, textarea, select')) return
+
+      event.preventDefault()
+      isSpacePanningRef.current = true
+      setIsSpacePanning(true)
+    }
+    const handleKeyUp = (event) => {
+      if (event.code !== 'Space') return
+
+      event.preventDefault()
+      stopSpacePan()
+    }
+    const visibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        stopSpacePan()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', stopSpacePan)
+    document.addEventListener('visibilitychange', visibilityChange)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', stopSpacePan)
+      document.removeEventListener('visibilitychange', visibilityChange)
+    }
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.defaultPrevented || (!event.metaKey && !event.ctrlKey)) return
       if (event.key.toLowerCase() !== 's') return
@@ -423,16 +512,23 @@ export function EditorWorkspace({
           autosaveError={autosaveError}
           autosaveStatus={autosaveStatus}
           getProjectExportData={getProjectExportData}
+          isTemplate={isTemplate}
           onProjectImport={importProject}
           onPageChange={openPage}
           onProjectSave={saveProject}
+          onTemplateChange={onTemplateChange}
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
           onZoomReset={resetZoom}
           pages={pages}
+          templateStatus={templateStatus}
           zoom={zoom}
         />
-        <div className="canvas-workspace" onWheel={handleCanvasWheel}>
+        <div
+          ref={canvasWorkspaceRef}
+          className={`canvas-workspace ${isSpacePanning ? 'is-space-panning' : ''} ${isPanningCanvas ? 'is-panning' : ''}`}
+          onWheel={handleCanvasWheel}
+        >
           <div className="canvas-scale" style={{ '--canvas-zoom': zoom }}>
             <div className="pages-stack">
               {pages.map((page, index) => {
