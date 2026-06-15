@@ -1,6 +1,6 @@
 import { endpoints } from './endpoints'
 import { env } from '../config/env'
-import { clearAuthCookies } from '../utils/authCookies'
+import { clearAuthCookies, setAuthCookies } from '../utils/authCookies'
 
 function createApiUrl(path, query) {
   const baseUrl = env.apiBaseUrl.replace(/\/$/, '')
@@ -35,7 +35,17 @@ async function refreshTokens() {
     method: 'POST',
   })
 
-  return parseResponse(response)
+  const tokens = await parseResponse(response)
+  if (tokens?.accessToken && tokens?.refreshToken) {
+    setAuthCookies(tokens)
+  }
+
+  return tokens
+}
+
+function redirectToLogin() {
+  clearAuthCookies()
+  window.location.hash = 'login'
 }
 
 export async function apiFetch(path, options = {}) {
@@ -55,17 +65,22 @@ export async function apiFetch(path, options = {}) {
   if (response.status === 401 && retryOnUnauthorized) {
     try {
       await refreshTokens()
-
-      const retryResponse = await fetch(createApiUrl(path, query), {
-        ...fetchOptions,
-        credentials: 'include',
-        headers,
-      })
-
-      return parseResponse(retryResponse)
     } catch {
-      clearAuthCookies()
+      redirectToLogin()
+      return parseResponse(response)
     }
+
+    const retryResponse = await fetch(createApiUrl(path, query), {
+      ...fetchOptions,
+      credentials: 'include',
+      headers,
+    })
+
+    if (retryResponse.status === 401) {
+      redirectToLogin()
+    }
+
+    return parseResponse(retryResponse)
   }
 
   return parseResponse(response)

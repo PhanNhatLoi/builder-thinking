@@ -1,7 +1,8 @@
+import { createPortal } from 'react-dom'
 import { useNodeFrame } from '../../hooks/useNodeFrame'
 
 export function EditableShell({ children, className = '', layout = 'flow', minResizeHeight, minResizeWidth, x = 0, y = 0, width, height }) {
-  const { connectNode, hovered, id, isFixed, measurements, MoveIcon, selected, shellStyle, startMove, startResize } = useNodeFrame({
+  const { connectNode, hovered, id, isFixed, measurements, MoveIcon, selected, shellElement, shellStyle, startMove, startResize } = useNodeFrame({
     layout,
     minResizeHeight,
     minResizeWidth,
@@ -11,6 +12,16 @@ export function EditableShell({ children, className = '', layout = 'flow', minRe
     height,
   })
   const hasDimensions = Number.isFinite(width) && Number.isFinite(height)
+  const focusSurface = selected ? shellElement?.parentElement?.closest('.layout-surface') : null
+  const focusFrameStyle =
+    selected && shellElement
+      ? {
+          left: `${shellElement.offsetLeft - 3}px`,
+          top: `${shellElement.offsetTop - 3}px`,
+          width: `${shellElement.offsetWidth + 6}px`,
+          height: `${shellElement.offsetHeight + 6}px`,
+        }
+      : null
 
   return (
     <div
@@ -41,6 +52,8 @@ export function EditableShell({ children, className = '', layout = 'flow', minRe
             <span>{measurement.label}</span>
           </div>
         ))}
+      {focusSurface && focusFrameStyle &&
+        createPortal(<div className="node-focus-frame" style={focusFrameStyle} />, focusSurface)}
     </div>
   )
 }

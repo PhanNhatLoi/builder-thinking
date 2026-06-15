@@ -67,6 +67,8 @@ export function CanvasRoot({
       ref={(ref) => ref && connect(ref)}
       className={`page-canvas layout-surface layout-${layoutMode} ${selected ? 'is-selected' : ''}`}
       data-node-id="ROOT"
+      data-page-height={height}
+      data-page-width={width}
       style={{
         ...layoutStyle,
         width,

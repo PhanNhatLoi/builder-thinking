@@ -357,6 +357,7 @@ export function useNodeFrame({ layout = 'flow', minResizeHeight = 32, minResizeW
     id,
     isFixed,
     selected,
+    shellElement: shellRef.current,
     shellStyle,
     startMove,
     startResize,

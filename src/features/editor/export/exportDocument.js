@@ -127,17 +127,48 @@ function pageElements() {
   return Array.from(document.querySelectorAll('.page-workbench .page-canvas'))
 }
 
+function pageSize(element) {
+  const width = Number.parseFloat(element.dataset.pageWidth)
+  const height = Number.parseFloat(element.dataset.pageHeight)
+
+  return {
+    width: Number.isFinite(width) && width > 0 ? width : element.offsetWidth,
+    height: Number.isFinite(height) && height > 0 ? height : element.offsetHeight,
+  }
+}
+
 async function capturePage(element) {
+  const { width, height } = pageSize(element)
+  const exportId = `page-export-${Math.random().toString(36).slice(2)}`
+  element.dataset.exportId = exportId
+
   return html2canvas(element, {
     backgroundColor: null,
     scale: exportScale,
     useCORS: true,
     allowTaint: true,
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-    windowWidth: document.documentElement.scrollWidth,
-    windowHeight: document.documentElement.scrollHeight,
+    width,
+    height,
+    windowWidth: Math.max(document.documentElement.scrollWidth, width),
+    windowHeight: Math.max(document.documentElement.scrollHeight, height),
+    onclone: (clonedDocument) => {
+      clonedDocument.querySelectorAll('.canvas-scale').forEach((canvasScale) => {
+        canvasScale.style.setProperty('--canvas-zoom', '1')
+        canvasScale.style.zoom = '1'
+      })
+
+      const clonedElement = clonedDocument.querySelector(`[data-export-id="${exportId}"]`)
+      if (!clonedElement) return
+
+      clonedElement.style.width = `${width}px`
+      clonedElement.style.minHeight = `${height}px`
+      clonedElement.style.height = `${height}px`
+      clonedElement.style.maxWidth = 'none'
+    },
   })
+    .finally(() => {
+      delete element.dataset.exportId
+    })
 }
 
 async function capturePages() {

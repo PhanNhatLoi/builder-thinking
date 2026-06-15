@@ -85,6 +85,8 @@ function renderCanvasRoot(nodes, id, node) {
     <main
       key={id}
       className={`page-canvas static-page-canvas layout-${props.layoutMode || 'free'}`}
+      data-page-height={props.height || 1040}
+      data-page-width={props.width || 860}
       style={{
         ...layoutStyle(props),
         alignItems: props.layoutMode === 'free' ? undefined : alignItemsMap[props.alignItems || 'stretch'],

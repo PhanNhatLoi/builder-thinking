@@ -2396,12 +2396,7 @@ button.brand-mark:focus {
   z-index: 2;
 }
 
-.node-shell.is-fixed.is-selected {
-  z-index: 4;
-}
-
 .node-shell.is-hovered::after,
-.node-shell.is-selected::after,
 .page-canvas.is-selected::after {
   position: absolute;
   inset: -3px;
@@ -2411,7 +2406,15 @@ button.brand-mark:focus {
   border-radius: 8px;
 }
 
-.node-shell.is-selected::before,
+.node-focus-frame {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  border: 1.5px solid #06b6d4;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgb(6 182 212 / 8%);
+}
+
 .page-canvas.is-selected::before {
   position: absolute;
   top: -12px;
@@ -2434,6 +2437,7 @@ button.brand-mark:focus {
 .is-exporting .page-canvas.is-selected::after,
 .is-exporting .node-shell.is-selected::before,
 .is-exporting .page-canvas.is-selected::before,
+.is-exporting .node-focus-frame,
 .is-exporting .node-move-handle,
 .is-exporting .node-resize-handle,
 .is-exporting .dimension-badge,
