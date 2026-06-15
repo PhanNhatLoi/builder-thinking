@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppProviders } from './app/providers'
-import { GetListPage, LoginPage, ProjectDetailPage } from './features/auth'
+import { GetListPage, LoginPage, ProjectDetailPage, TemplateListPage } from './features/auth'
 import { Editor } from './features/editor'
 import { LandingPage } from './features/landing'
 import { env } from './shared/config/env'
@@ -12,7 +12,11 @@ function getInitialScreen() {
     return `project:${hash.split('/').slice(1).join('/')}`
   }
 
-  if (hash === 'editor' || hash === 'login' || hash === 'getlist') {
+  if (hash.startsWith('template/')) {
+    return `template:${hash.split('/').slice(1).join('/')}`
+  }
+
+  if (hash === 'editor' || hash === 'login' || hash === 'getlist' || hash === 'templates') {
     return hash
   }
 
@@ -45,7 +49,9 @@ export default function App() {
       {screen === 'editor' ? <Editor /> : null}
       {screen === 'login' ? <LoginPage /> : null}
       {screen === 'getlist' ? <GetListPage /> : null}
+      {screen === 'templates' ? <TemplateListPage /> : null}
       {screen.startsWith('project:') ? <ProjectDetailPage publicId={screen.slice('project:'.length)} /> : null}
+      {screen.startsWith('template:') ? <ProjectDetailPage publicId={screen.slice('template:'.length)} templateMode /> : null}
       {screen === 'landing' ? <LandingPage onStart={openEditor} /> : null}
     </AppProviders>
   )

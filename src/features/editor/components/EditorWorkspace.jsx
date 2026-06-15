@@ -61,12 +61,15 @@ export function EditorWorkspace({
   autosaveError = '',
   autosaveStatus = 'idle',
   initialProject = null,
+  isTemplate = false,
   onBack,
   onProjectChange,
   onProjectNameSave,
   onProjectSave,
+  onTemplateChange,
   presentation = 'full',
   projectName = '',
+  templateStatus = 'idle',
 }) {
   const [activeTool, setActiveTool] = useState('pointer')
   const [activeFrameData, setActiveFrameData] = useState(null)
@@ -509,13 +512,16 @@ export function EditorWorkspace({
           autosaveError={autosaveError}
           autosaveStatus={autosaveStatus}
           getProjectExportData={getProjectExportData}
+          isTemplate={isTemplate}
           onProjectImport={importProject}
           onPageChange={openPage}
           onProjectSave={saveProject}
+          onTemplateChange={onTemplateChange}
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
           onZoomReset={resetZoom}
           pages={pages}
+          templateStatus={templateStatus}
           zoom={zoom}
         />
         <div

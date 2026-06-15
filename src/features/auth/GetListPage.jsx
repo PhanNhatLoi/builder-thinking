@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Edit3, FileText, FolderKanban, LayoutDashboard, LogOut, Plus, RefreshCcw, ShieldAlert, Trash2, X } from 'lucide-react'
+import { Edit3, FileText, FolderKanban, GalleryVerticalEnd, LayoutDashboard, LogOut, Plus, RefreshCcw, ShieldAlert, Trash2, X } from 'lucide-react'
 import { createProject, deleteProject, listProjects } from './api'
 import { clearAuthCookies } from '../../shared/utils/authCookies'
 
@@ -25,6 +25,7 @@ export function GetListPage() {
   const [error, setError] = useState('')
   const [confirmDeleteProject, setConfirmDeleteProject] = useState(null)
   const [deletingPublicId, setDeletingPublicId] = useState('')
+  const [projectFilter, setProjectFilter] = useState('all')
   const [isCreating, setIsCreating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -107,7 +108,17 @@ export function GetListPage() {
     loadProjects()
   }, [])
 
-  const projectItems = projects?.items || []
+  const allProjectItems = projects?.items || []
+  const projectItems = allProjectItems.filter((project) => {
+    if (projectFilter === 'templates') return project.template
+    if (projectFilter === 'pages') return !project.template
+    return true
+  })
+  const panelTitle = {
+    all: `${projectItems.length} pages`,
+    pages: `${projectItems.length} personal pages`,
+    templates: `${projectItems.length} templates`,
+  }[projectFilter]
 
   return (
     <main className="project-list-page">
@@ -121,6 +132,10 @@ export function GetListPage() {
           <a className="active" href="#getlist">
             <LayoutDashboard size={18} />
             My pages
+          </a>
+          <a href="#templates">
+            <GalleryVerticalEnd size={18} />
+            Templates
           </a>
           <button type="button" onClick={createNewProject} disabled={isCreating}>
             <Edit3 size={18} />
@@ -140,7 +155,7 @@ export function GetListPage() {
         <header className="project-list-header">
           <div>
             <h1>My pages</h1>
-            <p>Open an existing page or continue editing your saved work.</p>
+            <p>Open a saved page, continue editing, or browse reusable templates.</p>
           </div>
           <div className="project-list-actions">
             <button type="button" onClick={loadProjects} disabled={isLoading}>
@@ -164,8 +179,19 @@ export function GetListPage() {
         <div className="project-list-panel">
           <div className="project-list-panel-head">
             <FolderKanban size={20} />
-            <strong>{projectItems.length} pages</strong>
+            <strong>{panelTitle}</strong>
             {isLoading ? <span>Loading</span> : null}
+          </div>
+          <div className="project-list-filters" aria-label="Project filters">
+            <button type="button" className={projectFilter === 'all' ? 'active' : ''} onClick={() => setProjectFilter('all')}>
+              All
+            </button>
+            <button type="button" className={projectFilter === 'pages' ? 'active' : ''} onClick={() => setProjectFilter('pages')}>
+              Pages
+            </button>
+            <button type="button" className={projectFilter === 'templates' ? 'active' : ''} onClick={() => setProjectFilter('templates')}>
+              Templates
+            </button>
           </div>
 
           {projectItems.length ? (
@@ -186,7 +212,10 @@ export function GetListPage() {
                       </span>
                       <span className="project-card-body">
                         <strong>{name}</strong>
-                        <span>Modified {formatProjectDate(project.modifiedDate || project.createdDate)}</span>
+                        <span className="project-card-meta">
+                          <span>Modified {formatProjectDate(project.modifiedDate || project.createdDate)}</span>
+                          {project.template ? <span className="project-card-badge">Template</span> : null}
+                        </span>
                       </span>
                     </button>
                     <button
@@ -204,10 +233,11 @@ export function GetListPage() {
             </div>
           ) : (
             <div className="project-list-empty">
-              {isLoading ? 'Loading projects...' : 'No projects returned.'}
+              {isLoading ? 'Loading projects...' : 'No projects match this filter.'}
             </div>
           )}
         </div>
+
       </section>
 
       {confirmDeleteProject ? (

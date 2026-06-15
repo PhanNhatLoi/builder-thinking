@@ -14,9 +14,17 @@ export function loginWithGoogle(accessToken: string) {
   });
 }
 
-export function listProjects(params = { page: 1, limit: 10 }) {
+export function listProjects(params = { page: 1, limit: 10 }, options = {}) {
   return axiosClient.get(endpoints.projects.list, {
+    ...options,
     query: params,
+  });
+}
+
+export function listTemplates(params = { page: 1, limit: 10 }) {
+  return axiosClient.get(endpoints.projects.templates, {
+    query: params,
+    retryOnUnauthorized: false,
   });
 }
 
@@ -30,6 +38,12 @@ export function getProjectDetail(publicId: string) {
 
 export function getProjectInit(publicId: string) {
   return axiosClient.get(endpoints.projects.init(publicId));
+}
+
+export function getProjectInitPublic(publicId: string) {
+  return axiosClient.get(endpoints.projects.init(publicId), {
+    retryOnUnauthorized: false,
+  });
 }
 
 export function updateProject(publicId: string, payload: any) {

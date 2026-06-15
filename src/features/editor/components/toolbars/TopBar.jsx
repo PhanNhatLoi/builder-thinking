@@ -10,10 +10,13 @@ export function TopBar({
   autosaveError = '',
   autosaveStatus = 'idle',
   getProjectExportData,
+  isTemplate = false,
   onProjectImport,
   onPageChange,
   onProjectSave,
+  onTemplateChange,
   pages = [],
+  templateStatus = 'idle',
   zoom = 1,
   onZoomIn,
   onZoomOut,
@@ -107,6 +110,7 @@ export function TopBar({
     error: autosaveError || 'Autosave failed',
   }[autosaveStatus]
   const showSaveControl = typeof onProjectSave === 'function'
+  const showTemplateControl = typeof onTemplateChange === 'function'
 
   return (
     <header className="top-bar">
@@ -220,18 +224,32 @@ export function TopBar({
           onClick={() => selectedIds.length && actions.delete(selectedIds)}
         />
       </div>
-      {showSaveControl ? (
-        <button
-          type="button"
-          className={`autosave-status ${autosaveStatus}`}
-          disabled={autosaveStatus === 'saving'}
-          title={`${autosaveLabel} (Cmd/Ctrl+S)`}
-          onClick={onProjectSave}
-        >
-          {autosaveStatus === 'saved' ? <CheckCircle2 size={16} /> : autosaveStatus === 'pending' ? <Clock3 size={16} /> : <Save size={16} />}
-          <span>{autosaveLabel}</span>
-        </button>
-      ) : null}
+      <div className="top-status-actions">
+        {showTemplateControl ? (
+          <label className={`template-toggle ${isTemplate ? 'active' : ''} ${templateStatus}`}>
+            <input
+              type="checkbox"
+              checked={isTemplate}
+              disabled={templateStatus === 'saving'}
+              onChange={(event) => onTemplateChange(event.target.checked)}
+            />
+            <span className="template-toggle-box" aria-hidden="true" />
+            <span>{templateStatus === 'saving' ? 'Updating' : 'Template'}</span>
+          </label>
+        ) : null}
+        {showSaveControl ? (
+          <button
+            type="button"
+            className={`autosave-status ${autosaveStatus}`}
+            disabled={autosaveStatus === 'saving'}
+            title={`${autosaveLabel} (Cmd/Ctrl+S)`}
+            onClick={onProjectSave}
+          >
+            {autosaveStatus === 'saved' ? <CheckCircle2 size={16} /> : autosaveStatus === 'pending' ? <Clock3 size={16} /> : <Save size={16} />}
+            <span>{autosaveLabel}</span>
+          </button>
+        ) : null}
+      </div>
       {jsonTokenOpen && (
         <div className="token-modal-backdrop" role="presentation">
           <div className="token-modal" role="dialog" aria-modal="true" aria-label="Import JSON token">
