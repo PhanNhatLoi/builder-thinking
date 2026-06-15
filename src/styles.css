@@ -2415,6 +2415,21 @@ button.brand-mark:focus {
   box-shadow: 0 0 0 3px rgb(6 182 212 / 8%);
 }
 
+.layout-surface.is-nesting-target-pending,
+.layout-surface.is-nesting-target-ready {
+  outline-offset: -6px;
+}
+
+.layout-surface.is-nesting-target-pending {
+  outline: 2px dashed rgb(14 165 233 / 55%);
+  box-shadow: inset 0 0 0 9999px rgb(14 165 233 / 4%);
+}
+
+.layout-surface.is-nesting-target-ready {
+  outline: 2px solid #0ea5e9;
+  box-shadow: inset 0 0 0 9999px rgb(14 165 233 / 8%), 0 0 0 4px rgb(14 165 233 / 14%);
+}
+
 .page-canvas.is-selected::before {
   position: absolute;
   top: -12px;
@@ -2429,6 +2444,12 @@ button.brand-mark:focus {
 }
 
 .is-exporting .page-canvas {
+  box-shadow: none;
+}
+
+.is-exporting .layout-surface.is-nesting-target-pending,
+.is-exporting .layout-surface.is-nesting-target-ready {
+  outline: none;
   box-shadow: none;
 }
 
