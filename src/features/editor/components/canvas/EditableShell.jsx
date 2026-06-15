@@ -48,9 +48,13 @@ export function EditableShell({ children, className = '', layout = 'flow', minRe
       )}
       {selected &&
         measurements.map((measurement, index) => (
-          <div key={`${measurement.kind}-${index}`} className={`measurement-line ${measurement.kind}`} style={measurement.lineStyle}>
-            <span>{measurement.label}</span>
-          </div>
+          createPortal(
+            <div className={`measurement-line ${measurement.kind}`} style={measurement.lineStyle}>
+              <span>{measurement.label}</span>
+            </div>,
+            document.body,
+            `${measurement.kind}-${index}`,
+          )
         ))}
       {focusSurface && focusFrameStyle &&
         createPortal(<div className="node-focus-frame" style={focusFrameStyle} />, focusSurface)}

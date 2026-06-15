@@ -1,0 +1,700 @@
+{
+  "schema": "builder-thinking.project",
+  "version": 1,
+  "activePageId": "page-1",
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "CV - Editorial UI Designer",
+      "serialized": {
+        "ROOT": {
+          "type": {
+            "resolvedName": "CanvasRoot"
+          },
+          "isCanvas": true,
+          "props": {
+            "pageSizePreset": "a4",
+            "width": 860,
+            "height": 1040,
+            "background": "#ffffff",
+            "layoutMode": "free"
+          },
+          "displayName": "Page",
+          "custom": {},
+          "hidden": false,
+          "nodes": [
+            "left4",
+            "topRight4",
+            "midRight4",
+            "bottomRight4"
+          ],
+          "linkedNodes": {}
+        },
+        "left4": {
+          "type": {
+            "resolvedName": "Section"
+          },
+          "isCanvas": true,
+          "props": {
+            "background": "#202020",
+            "layout": "fixed",
+            "layoutMode": "free",
+            "x": 0,
+            "y": 0,
+            "width": 370,
+            "height": 1040
+          },
+          "displayName": "Left Panel",
+          "custom": {},
+          "parent": "ROOT",
+          "hidden": false,
+          "nodes": [
+            "portrait4",
+            "name4",
+            "role4",
+            "skills4Title",
+            "skills4",
+            "languages4Title",
+            "languages4"
+          ],
+          "linkedNodes": {}
+        },
+        "portrait4": {
+          "type": {
+            "resolvedName": "Section"
+          },
+          "isCanvas": true,
+          "props": {
+            "background": "#d7d7d7",
+            "layout": "fixed",
+            "layoutMode": "free",
+            "x": 0,
+            "y": 0,
+            "width": 370,
+            "height": 380,
+            "clipContent": true
+          },
+          "displayName": "Portrait",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [
+            "face4",
+            "body4"
+          ],
+          "linkedNodes": {}
+        },
+        "face4": {
+          "type": {
+            "resolvedName": "ShapeBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "shapeType": "ellipse",
+            "fillType": "color",
+            "fill": "#222222",
+            "opacity": 100,
+            "strokeColor": "#111827",
+            "strokeWidth": 0,
+            "strokeStyle": "solid",
+            "lineDirection": "up",
+            "radius": 0,
+            "layout": "fixed",
+            "x": 92,
+            "y": 42,
+            "width": 185,
+            "height": 185
+          },
+          "displayName": "Face",
+          "custom": {},
+          "parent": "portrait4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "body4": {
+          "type": {
+            "resolvedName": "ShapeBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "shapeType": "ellipse",
+            "fillType": "color",
+            "fill": "#111111",
+            "opacity": 100,
+            "strokeColor": "#111827",
+            "strokeWidth": 0,
+            "strokeStyle": "solid",
+            "lineDirection": "up",
+            "radius": 0,
+            "layout": "fixed",
+            "x": 30,
+            "y": 220,
+            "width": 310,
+            "height": 245
+          },
+          "displayName": "Body",
+          "custom": {},
+          "parent": "portrait4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "name4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "Richard\nSanchez",
+            "fontFamily": "Poppins",
+            "fontSize": 54,
+            "fontWeight": 700,
+            "lineHeight": 62,
+            "letterSpacing": 0,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 420,
+            "width": 285,
+            "height": 132
+          },
+          "displayName": "Name",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "role4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "U I / U X   D E S I G N E R",
+            "fontFamily": "Montserrat",
+            "fontSize": 17,
+            "fontWeight": 600,
+            "lineHeight": 24,
+            "letterSpacing": 6,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 610,
+            "width": 290,
+            "height": 28
+          },
+          "displayName": "Role",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "skills4Title": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "S K I L L S",
+            "fontFamily": "Montserrat",
+            "fontSize": 18,
+            "fontWeight": 800,
+            "lineHeight": 26,
+            "letterSpacing": 5,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 720,
+            "width": 210,
+            "height": 30
+          },
+          "displayName": "Skills Title",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "skills4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "• Graphic design\n• Illustration\n• Layout design\n• Icons design\n• Programming\n• Communication and teamwork",
+            "fontFamily": "Poppins",
+            "fontSize": 16,
+            "fontWeight": 400,
+            "lineHeight": 30,
+            "letterSpacing": 0,
+            "color": "#f5f5f5",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 770,
+            "width": 285,
+            "height": 190
+          },
+          "displayName": "Skills",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "languages4Title": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "L A N G U A G E S",
+            "fontFamily": "Montserrat",
+            "fontSize": 18,
+            "fontWeight": 800,
+            "lineHeight": 26,
+            "letterSpacing": 4,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 940,
+            "width": 250,
+            "height": 30
+          },
+          "displayName": "Languages Title",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "languages4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "English\nIndonesia",
+            "fontFamily": "Poppins",
+            "fontSize": 15,
+            "fontWeight": 400,
+            "lineHeight": 28,
+            "letterSpacing": 0,
+            "color": "#f5f5f5",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 975,
+            "width": 180,
+            "height": 60
+          },
+          "displayName": "Languages",
+          "custom": {},
+          "parent": "left4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "topRight4": {
+          "type": {
+            "resolvedName": "Section"
+          },
+          "isCanvas": true,
+          "props": {
+            "background": "#ffffff",
+            "layout": "fixed",
+            "layoutMode": "free",
+            "x": 370,
+            "y": 0,
+            "width": 490,
+            "height": 360
+          },
+          "displayName": "Profile Education",
+          "custom": {},
+          "parent": "ROOT",
+          "hidden": false,
+          "nodes": [
+            "profile4Title",
+            "profile4",
+            "edu4Vertical",
+            "edu4Text"
+          ],
+          "linkedNodes": {}
+        },
+        "profile4Title": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "PROFILE",
+            "fontFamily": "Montserrat",
+            "fontSize": 18,
+            "fontWeight": 800,
+            "lineHeight": 26,
+            "letterSpacing": 3,
+            "color": "#111827",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 108,
+            "y": 55,
+            "width": 180,
+            "height": 28
+          },
+          "displayName": "Profile Title",
+          "custom": {},
+          "parent": "topRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "profile4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "I am a UI/UX designer. UX is the process of designing a product through a user approach. Products with good UX design increase user satisfaction.",
+            "fontFamily": "Poppins",
+            "fontSize": 18,
+            "fontWeight": 400,
+            "lineHeight": 30,
+            "letterSpacing": 0,
+            "color": "#111111",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 108,
+            "y": 100,
+            "width": 320,
+            "height": 122
+          },
+          "displayName": "Profile",
+          "custom": {},
+          "parent": "topRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "edu4Vertical": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "EDUCATION",
+            "fontFamily": "Montserrat",
+            "fontSize": 27,
+            "fontWeight": 800,
+            "lineHeight": 32,
+            "letterSpacing": 0,
+            "color": "#111111",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 40,
+            "y": 210,
+            "width": 190,
+            "height": 34
+          },
+          "displayName": "Education Vertical",
+          "custom": {},
+          "parent": "topRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "edu4Text": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "2001 - 2004\nVisual Communication Design\nReallygreat university\n\n1997 - 2000\nMultimedia Design\nReallygreat school",
+            "fontFamily": "Poppins",
+            "fontSize": 16,
+            "fontWeight": 400,
+            "lineHeight": 24,
+            "letterSpacing": 0,
+            "color": "#111111",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 108,
+            "y": 220,
+            "width": 315,
+            "height": 130
+          },
+          "displayName": "Education Text",
+          "custom": {},
+          "parent": "topRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "midRight4": {
+          "type": {
+            "resolvedName": "Section"
+          },
+          "isCanvas": true,
+          "props": {
+            "background": "#eeeeee",
+            "layout": "fixed",
+            "layoutMode": "free",
+            "x": 370,
+            "y": 360,
+            "width": 490,
+            "height": 470
+          },
+          "displayName": "Experience",
+          "custom": {},
+          "parent": "ROOT",
+          "hidden": false,
+          "nodes": [
+            "exp4Vertical",
+            "exp4Rule",
+            "exp4Text"
+          ],
+          "linkedNodes": {}
+        },
+        "exp4Vertical": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "EXPERIENCE",
+            "fontFamily": "Montserrat",
+            "fontSize": 27,
+            "fontWeight": 800,
+            "lineHeight": 32,
+            "letterSpacing": 0,
+            "color": "#111111",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 38,
+            "y": 230,
+            "width": 205,
+            "height": 34
+          },
+          "displayName": "Experience Vertical",
+          "custom": {},
+          "parent": "midRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "exp4Rule": {
+          "type": {
+            "resolvedName": "ShapeBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "shapeType": "rectangle",
+            "fillType": "color",
+            "fill": "#111111",
+            "opacity": 100,
+            "strokeColor": "#111827",
+            "strokeWidth": 0,
+            "strokeStyle": "solid",
+            "lineDirection": "up",
+            "radius": 0,
+            "layout": "fixed",
+            "x": 62,
+            "y": 95,
+            "width": 3,
+            "height": 180
+          },
+          "displayName": "Experience Rule",
+          "custom": {},
+          "parent": "midRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "exp4Text": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "2016 - 2021 | UI/UX Designer\nCollaboration with their team to solve UX problems on e-commerce sites\nReallygreatsite studio\n\n2010 - 2015 | Frontend developer\nSlicing design and implementing visual and interactive elements\nGreatsite studio\n\n2005 - 2009 | Graphic designer\nDesigned numerous marketing campaigns\nReallygreat studio",
+            "fontFamily": "Poppins",
+            "fontSize": 16,
+            "fontWeight": 400,
+            "lineHeight": 25,
+            "letterSpacing": 0,
+            "color": "#111111",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 108,
+            "y": 70,
+            "width": 340,
+            "height": 330
+          },
+          "displayName": "Experience Text",
+          "custom": {},
+          "parent": "midRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "bottomRight4": {
+          "type": {
+            "resolvedName": "Section"
+          },
+          "isCanvas": true,
+          "props": {
+            "background": "#9a9a9a",
+            "layout": "fixed",
+            "layoutMode": "free",
+            "x": 370,
+            "y": 830,
+            "width": 490,
+            "height": 210
+          },
+          "displayName": "Contact",
+          "custom": {},
+          "parent": "ROOT",
+          "hidden": false,
+          "nodes": [
+            "contact4Title",
+            "contact4Icons",
+            "contact4"
+          ],
+          "linkedNodes": {}
+        },
+        "contact4Title": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "C O N T A C T",
+            "fontFamily": "Montserrat",
+            "fontSize": 18,
+            "fontWeight": 800,
+            "lineHeight": 26,
+            "letterSpacing": 4,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 40,
+            "y": 38,
+            "width": 230,
+            "height": 30
+          },
+          "displayName": "Contact Title",
+          "custom": {},
+          "parent": "bottomRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "contact4Icons": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "☎\n✉\n◎\n●",
+            "fontFamily": "Inter",
+            "fontSize": 23,
+            "fontWeight": 400,
+            "lineHeight": 37,
+            "letterSpacing": 0,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 42,
+            "y": 88,
+            "width": 34,
+            "height": 150
+          },
+          "displayName": "Contact Icons",
+          "custom": {},
+          "parent": "bottomRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        },
+        "contact4": {
+          "type": {
+            "resolvedName": "TextBlock"
+          },
+          "isCanvas": false,
+          "props": {
+            "text": "+123-456-7890\nhello@reallygreatsite.com\nwww.reallygreatsite.com\n123 Anywhere St., Any City, ST 12345",
+            "fontFamily": "Poppins",
+            "fontSize": 15,
+            "fontWeight": 400,
+            "lineHeight": 37,
+            "letterSpacing": 0,
+            "color": "#ffffff",
+            "align": "left",
+            "verticalAlign": "top",
+            "opacity": 100,
+            "textSizing": "autoHeight",
+            "layout": "fixed",
+            "x": 85,
+            "y": 88,
+            "width": 350,
+            "height": 150
+          },
+          "displayName": "Contact Text",
+          "custom": {},
+          "parent": "bottomRight4",
+          "hidden": false,
+          "nodes": [],
+          "linkedNodes": {}
+        }
+      }
+    }
+  ]
+}

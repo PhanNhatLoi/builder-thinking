@@ -2085,6 +2085,20 @@ button.brand-mark:focus {
   background-size: 24px 24px;
 }
 
+.canvas-workspace.is-space-panning {
+  cursor: grab;
+}
+
+.canvas-workspace.is-space-panning * {
+  cursor: grab !important;
+}
+
+.canvas-workspace.is-panning,
+.canvas-workspace.is-panning * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
 .canvas-scale {
   position: relative;
   width: min(860px, 100%);
@@ -2333,7 +2347,7 @@ button.brand-mark:focus {
   position: fixed;
   z-index: 14;
   pointer-events: none;
-  background: #0ea5e9;
+  background: #ef4444;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 45%);
 }
 
@@ -2355,7 +2369,7 @@ button.brand-mark:focus {
   padding: 0 6px;
   color: #ffffff;
   white-space: nowrap;
-  background: #0b5cad;
+  background: #b91c1c;
   border-radius: 5px;
   font-size: 10px;
   font-weight: 800;

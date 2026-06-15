@@ -4,6 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { clamp } from "../utils/editorUtils";
 
 const nestingActivationDelayMs = 700;
+const pointerChangeHistoryThrottleMs = 60000;
+
+function isOptionDown(event) {
+  return Boolean(event.altKey || event.getModifierState?.("Alt"));
+}
+
+function isOptionKey(event) {
+  return event.key === "Alt" || event.code === "AltLeft" || event.code === "AltRight";
+}
 
 function overlaps(startA, endA, startB, endB) {
   return Math.max(startA, startB) < Math.min(endA, endB);
@@ -42,16 +51,62 @@ function getElementScale(element) {
     : 1;
 }
 
-function buildMeasurements(shell, id) {
+function lineYBetween(firstRect, secondRect) {
+  if (overlaps(firstRect.top, firstRect.bottom, secondRect.top, secondRect.bottom)) {
+    return (Math.max(firstRect.top, secondRect.top) + Math.min(firstRect.bottom, secondRect.bottom)) / 2;
+  }
+
+  return (firstRect.top + firstRect.height / 2 + secondRect.top + secondRect.height / 2) / 2;
+}
+
+function lineXBetween(firstRect, secondRect) {
+  if (overlaps(firstRect.left, firstRect.right, secondRect.left, secondRect.right)) {
+    return (Math.max(firstRect.left, secondRect.left) + Math.min(firstRect.right, secondRect.right)) / 2;
+  }
+
+  return (firstRect.left + firstRect.width / 2 + secondRect.left + secondRect.width / 2) / 2;
+}
+
+function buildNodeMeasurements(shellRect, targetRect, scale) {
+  const items = [];
+
+  if (targetRect.right <= shellRect.left) {
+    const gap = shellRect.left - targetRect.right;
+    items.push(horizontalMeasurement(targetRect.right, lineYBetween(shellRect, targetRect), gap, Math.round(gap / scale)));
+  } else if (shellRect.right <= targetRect.left) {
+    const gap = targetRect.left - shellRect.right;
+    items.push(horizontalMeasurement(shellRect.right, lineYBetween(shellRect, targetRect), gap, Math.round(gap / scale)));
+  }
+
+  if (targetRect.bottom <= shellRect.top) {
+    const gap = shellRect.top - targetRect.bottom;
+    items.push(verticalMeasurement(lineXBetween(shellRect, targetRect), targetRect.bottom, gap, Math.round(gap / scale)));
+  } else if (shellRect.bottom <= targetRect.top) {
+    const gap = targetRect.top - shellRect.bottom;
+    items.push(verticalMeasurement(lineXBetween(shellRect, targetRect), shellRect.bottom, gap, Math.round(gap / scale)));
+  }
+
+  return items.filter(Boolean);
+}
+
+function buildMeasurements(shell, hoveredSiblingNode) {
   const surface = shell?.closest(".layout-surface");
   if (!shell || !surface) return [];
 
   const shellRect = shell.getBoundingClientRect();
   const surfaceRect = surface.getBoundingClientRect();
   const scale = getElementScale(surface);
+  const hoveredSiblingDom = hoveredSiblingNode?.dom;
+  const hoveredSiblingSurface = hoveredSiblingDom?.closest?.(".layout-surface");
+
+  if (hoveredSiblingDom && hoveredSiblingSurface === surface) {
+    return buildNodeMeasurements(shellRect, hoveredSiblingDom.getBoundingClientRect(), scale);
+  }
+
   const centerX = shellRect.left + shellRect.width / 2;
   const centerY = shellRect.top + shellRect.height / 2;
-  const items = [
+
+  return [
     horizontalMeasurement(
       surfaceRect.left,
       centerY,
@@ -77,84 +132,6 @@ function buildMeasurements(shell, id) {
       Math.round((surfaceRect.bottom - shellRect.bottom) / scale),
     ),
   ].filter(Boolean);
-
-  const siblings = Array.from(surface.querySelectorAll(".node-shell")).filter(
-    (node) => {
-      return (
-        node !== shell &&
-        node.dataset.nodeId !== id &&
-        node.closest(".layout-surface") === surface
-      );
-    },
-  );
-  let nearestHorizontal = null;
-  let nearestVertical = null;
-
-  siblings.forEach((node) => {
-    const rect = node.getBoundingClientRect();
-    if (overlaps(shellRect.top, shellRect.bottom, rect.top, rect.bottom)) {
-      if (rect.right <= shellRect.left) {
-        const gap = shellRect.left - rect.right;
-        if (!nearestHorizontal || gap < nearestHorizontal.gap) {
-          nearestHorizontal = { gap, x: rect.right, y: centerY, width: gap };
-        }
-      }
-      if (rect.left >= shellRect.right) {
-        const gap = rect.left - shellRect.right;
-        if (!nearestHorizontal || gap < nearestHorizontal.gap) {
-          nearestHorizontal = {
-            gap,
-            x: shellRect.right,
-            y: centerY,
-            width: gap,
-          };
-        }
-      }
-    }
-
-    if (overlaps(shellRect.left, shellRect.right, rect.left, rect.right)) {
-      if (rect.bottom <= shellRect.top) {
-        const gap = shellRect.top - rect.bottom;
-        if (!nearestVertical || gap < nearestVertical.gap) {
-          nearestVertical = { gap, x: centerX, y: rect.bottom, height: gap };
-        }
-      }
-      if (rect.top >= shellRect.bottom) {
-        const gap = rect.top - shellRect.bottom;
-        if (!nearestVertical || gap < nearestVertical.gap) {
-          nearestVertical = {
-            gap,
-            x: centerX,
-            y: shellRect.bottom,
-            height: gap,
-          };
-        }
-      }
-    }
-  });
-
-  if (nearestHorizontal) {
-    items.push(
-      horizontalMeasurement(
-        nearestHorizontal.x,
-        nearestHorizontal.y - 14,
-        nearestHorizontal.width,
-        Math.round(nearestHorizontal.gap / scale),
-      ),
-    );
-  }
-  if (nearestVertical) {
-    items.push(
-      verticalMeasurement(
-        nearestVertical.x + 14,
-        nearestVertical.y,
-        nearestVertical.height,
-        Math.round(nearestVertical.gap / scale),
-      ),
-    );
-  }
-
-  return items.filter(Boolean);
 }
 
 export function useNodeFrame({
@@ -171,7 +148,6 @@ export function useNodeFrame({
   const [measurements, setMeasurements] = useState([]);
   const {
     connectors: { connect, drag },
-    actions,
     id,
     parentId,
     selected,
@@ -185,10 +161,14 @@ export function useNodeFrame({
 
   const {
     actions: editorActions,
+    hoveredSiblingId,
     nodes,
     parentLayoutMode,
     selectedIds,
   } = useEditor((state) => ({
+    hoveredSiblingId: Object.entries(state.nodes).find(([nodeId, node]) => (
+      nodeId !== id && node?.data.parent === parentId && node.events.hovered
+    ))?.[0] || null,
     nodes: state.nodes,
     parentLayoutMode: parentId
       ? state.nodes[parentId]?.data.props.layoutMode
@@ -213,7 +193,12 @@ export function useNodeFrame({
   };
 
   const updateMeasurements = () => {
-    setMeasurements(buildMeasurements(shellRef.current, id));
+    setMeasurements(buildMeasurements(shellRef.current, nodes[hoveredSiblingId]));
+  };
+
+  const clearMeasurements = () => {
+    setAltDown(false);
+    setMeasurements([]);
   };
 
   useEffect(() => {
@@ -223,32 +208,40 @@ export function useNodeFrame({
     }
 
     const keyDown = (event) => {
-      if (event.altKey) {
-        setAltDown(true);
-        requestAnimationFrame(updateMeasurements);
-      }
+      if (!isOptionDown(event)) return;
+
+      setAltDown(true);
+      requestAnimationFrame(updateMeasurements);
     };
     const keyUp = (event) => {
-      if (!event.altKey) {
-        setAltDown(false);
-        setMeasurements([]);
+      if (!isOptionKey(event) && isOptionDown(event)) return;
+
+      clearMeasurements();
+    };
+    const visibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        clearMeasurements();
       }
     };
 
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", clearMeasurements);
+    document.addEventListener("visibilitychange", visibilityChange);
 
     return () => {
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", clearMeasurements);
+      document.removeEventListener("visibilitychange", visibilityChange);
     };
-  }, [id, selected]);
+  }, [hoveredSiblingId, nodes, selected]);
 
   useEffect(() => {
     if (selected && altDown) {
       updateMeasurements();
     }
-  }, [altDown, height, selected, width, x, y]);
+  }, [altDown, height, hoveredSiblingId, selected, width, x, y]);
 
   const startMove = (event) => {
     event.preventDefault();
@@ -314,6 +307,16 @@ export function useNodeFrame({
     let nestingReadyId = null;
     let nestingReadySurface = null;
     let nestingTimer = null;
+    let hasRecordedDragHistory = false;
+
+    const dragHistoryActions = () => {
+      if (hasRecordedDragHistory) {
+        return editorActions.history.throttle(pointerChangeHistoryThrottleMs);
+      }
+
+      hasRecordedDragHistory = true;
+      return editorActions;
+    };
 
     const clearNestingTarget = () => {
       window.clearTimeout(nestingTimer);
@@ -414,19 +417,19 @@ export function useNodeFrame({
 
       if (groupOrigins.length > 1) {
         groupOrigins.forEach((item) => {
-          editorActions.setProp(item.id, (draft) => {
+          dragHistoryActions().setProp(item.id, (draft) => {
             draft.x = Math.round(item.x + clampedDeltaX);
             draft.y = Math.round(item.y + clampedDeltaY);
           });
         });
       } else {
-        actions.setProp((draft) => {
+        dragHistoryActions().setProp(id, (draft) => {
           draft.x = Math.round(nextX);
           draft.y = Math.round(nextY);
-        }, 16);
+        });
       }
 
-      if (moveEvent.altKey) {
+      if (isOptionDown(moveEvent)) {
         requestAnimationFrame(updateMeasurements);
       } else if (measurements.length) {
         setMeasurements([]);
@@ -468,14 +471,14 @@ export function useNodeFrame({
         maxNextY,
       );
 
-      actions.setProp((draft) => {
+      dragHistoryActions().setProp(id, (draft) => {
         draft.layout = nextParentLayoutMode === "free" ? "fixed" : "flow";
         if (nextParentLayoutMode === "free") {
           draft.x = Math.round(nextX);
           draft.y = Math.round(nextY);
         }
       });
-      editorActions.move(id, nextParentId, nextParent?.data.nodes.length || 0);
+      dragHistoryActions().move(id, nextParentId, nextParent?.data.nodes.length || 0);
     };
 
     window.addEventListener("mousemove", move);
@@ -492,6 +495,16 @@ export function useNodeFrame({
     const startY = event.clientY;
     const originWidth = shell.offsetWidth;
     const originHeight = shell.offsetHeight;
+    let hasRecordedResizeHistory = false;
+
+    const resizeHistoryActions = () => {
+      if (hasRecordedResizeHistory) {
+        return editorActions.history.throttle(pointerChangeHistoryThrottleMs);
+      }
+
+      hasRecordedResizeHistory = true;
+      return editorActions;
+    };
 
     const move = (moveEvent) => {
       let nextWidth = originWidth + (moveEvent.clientX - startX) / scale;
@@ -508,12 +521,12 @@ export function useNodeFrame({
         }
       }
 
-      actions.setProp((draft) => {
+      resizeHistoryActions().setProp(id, (draft) => {
         draft.width = Math.round(clamp(nextWidth, minResizeWidth, 960));
         draft.height = Math.round(clamp(nextHeight, minResizeHeight, 720));
       });
 
-      if (moveEvent.altKey) requestAnimationFrame(updateMeasurements);
+      if (isOptionDown(moveEvent)) requestAnimationFrame(updateMeasurements);
     };
 
     const stop = () => {
