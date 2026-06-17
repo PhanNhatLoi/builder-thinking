@@ -1,0 +1,7 @@
+# Builder Thinking
+
+Builder Thinking is a Canva-like visual document editor. AI agents should read the public guide below before generating importable Builder Thinking design JSON.
+
+- AI Design Guide page: /ai-design-guide
+- AI Design Guide raw Markdown: /ai-design-guide.md
+- Sitemap: /sitemap.xml

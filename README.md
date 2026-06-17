@@ -203,6 +203,7 @@ CONTRIBUTING.md
 ## Routes
 
 - `/` or `#home`: landing page
+- `/ai-design-guide` or `#ai-design-guide`: public AI design guide
 - `#editor`: full editor
 
 ## Screenshot
