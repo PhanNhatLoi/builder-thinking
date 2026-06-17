@@ -1,7 +1,15 @@
-# Builder Thinking
+# Builder Nhat Loi
 
-Builder Thinking is a Canva-like visual document editor. AI agents should read the public guide below before generating importable Builder Thinking design JSON.
+Documentation:
+https://builder.nhatloi.work/ai-design-guide
 
-- AI Design Guide page: /ai-design-guide
-- AI Design Guide raw Markdown: /ai-design-guide.md
-- Sitemap: /sitemap.xml
+Raw Markdown:
+https://builder.nhatloi.work/ai-design-guide.md
+
+Purpose:
+This documentation explains how AI should generate pages for Builder Nhat Loi.
+
+Important Resources:
+
+* https://builder.nhatloi.work/ai-design-guide
+* https://builder.nhatloi.work/ai-design-guide.md

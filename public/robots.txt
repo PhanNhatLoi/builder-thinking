@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: /sitemap.xml
-
+Sitemap: https://builder.nhatloi.work/sitemap.xml
