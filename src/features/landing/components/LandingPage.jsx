@@ -40,7 +40,7 @@ export function LandingPage({ onStart }) {
           <a href="#demo">Demo</a>
           <a href="#workflow">Workflow</a>
           <a href="/ai-design-guide">AI Guide</a>
-          <a href="#login">Login</a>
+          <a href="/login">Login</a>
           <button type="button" className="landing-nav-cta" onClick={onStart}>
             Start <ArrowRight size={15} />
           </button>

@@ -56,7 +56,7 @@ export function LoginPage() {
       })
 
       setAuthCookies(tokens)
-      window.location.hash = 'getlist'
+      window.location.href = '/getlist'
     } catch (err) {
       setError(err.message || 'Login failed.')
     } finally {
@@ -91,9 +91,9 @@ export function LoginPage() {
             const tokens = await loginWithGoogle(response.access_token)
 
             setAuthCookies(tokens)
-            window.location.hash = 'getlist'
+            window.location.href = '/getlist'
           } catch (err) {
-            window.location.hash = 'login'
+            window.location.href = '/login'
             setError(err.message || 'Google login failed.')
           } finally {
             setIsGoogleSubmitting(false)
@@ -116,7 +116,7 @@ export function LoginPage() {
     <main className="auth-page">
       <section className="auth-shell">
         <div className="auth-copy">
-          <a className="auth-brand" href="#">
+          <a className="auth-brand" href="/">
             <span className="auth-brand-mark">
               <Blocks size={18} />
             </span>

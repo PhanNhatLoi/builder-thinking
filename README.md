@@ -1,6 +1,6 @@
 # Builder Thinking
 
-Builder Thinking is a Canva-like page builder built with React, Craft.js, and Lexical. It focuses on visual document creation: resumes, portfolios, posters, multi-page documents, and AI-generated design layouts.
+Builder Thinking is a Canva-like page builder built with Next.js, React, Craft.js, and Lexical. It focuses on visual document creation: resumes, portfolios, posters, multi-page documents, and AI-generated design layouts.
 
 > Status: alpha. Builder Thinking is usable as a prototype and portfolio-grade editor, but APIs, schemas, and project file formats may still change.
 
@@ -22,7 +22,7 @@ The project currently has two main surfaces:
 - Product-focused landing page with hero content, CTA buttons, feature sections, workflow section, and responsive messaging.
 - Placeholder areas for future product images and videos.
 - Embedded live editor demo inside the landing page.
-- Start buttons route users into the full editor through `#editor`.
+- Start buttons route users into the full editor through `/editor`.
 
 ### Canvas Editor
 
@@ -90,7 +90,7 @@ The project currently has two main surfaces:
 ## Tech Stack
 
 - React
-- Vite
+- Next.js App Router
 - Craft.js
 - Lexical
 - Lucide React
@@ -117,6 +117,15 @@ Useful files:
 ```text
 src/
   app/
+    ai-design-guide/
+    editor/
+    getlist/
+    login/
+    project/
+    template/
+    templates/
+    layout.jsx
+    page.jsx
     providers.jsx
     queryClient.js
     store.js
@@ -145,7 +154,7 @@ src/
     config/
 
   App.jsx
-  main.jsx
+  routes/
   styles.css
 
 docs/
@@ -155,7 +164,7 @@ docs/
 
 ## Environment
 
-Vite environment variables are read through `src/shared/config/env.js`.
+Next.js public environment variables are read through `src/shared/config/env.js`.
 
 Create a local `.env` file from `.env.example`:
 
@@ -166,8 +175,9 @@ cp .env.example .env
 Current supported variables:
 
 ```text
-VITE_APP_NAME=Builder Thinking
-VITE_API_BASE_URL=
+NEXT_PUBLIC_APP_NAME=Builder Thinking
+NEXT_PUBLIC_API_BASE_URL=
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ```
 
 ## Run Locally
@@ -202,9 +212,15 @@ CONTRIBUTING.md
 
 ## Routes
 
-- `/` or `#home`: landing page
-- `/ai-design-guide` or `#ai-design-guide`: public AI design guide
-- `#editor`: full editor
+- `/`: landing page
+- `/ai-design-guide`: public AI design guide rendered as HTML
+- `/ai-design-guide.md`: raw Markdown AI design guide
+- `/editor`: full editor
+- `/login`: login page
+- `/getlist`: project list
+- `/templates`: public template list
+- `/project/[publicId]`: project detail/editor
+- `/template/[publicId]`: template detail/editor
 
 ## Screenshot
 
@@ -217,7 +233,7 @@ docs/assets/editor-overview.png
 It was captured from the full editor route:
 
 ```text
-http://127.0.0.1:5174/#editor
+http://127.0.0.1:3000/editor
 ```
 
 ## Current Direction

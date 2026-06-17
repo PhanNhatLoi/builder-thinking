@@ -1,9 +1,17 @@
 import { useEditor } from '@craftjs/core'
 import { Braces, CheckCircle2, ChevronDown, ChevronRight, Clipboard, Clock3, Download, FileArchive, FileImage, FileText, FolderOpen, Redo2, Save, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import { useRef, useState } from 'react'
-import aiDesignGuide from '../../ai/AI_DESIGN_GUIDE.md?raw'
 import { exportDocument, parseProjectFile, parseProjectToken } from '../../export/exportDocument'
 import { IconButton } from './IconButton'
+
+async function loadAiDesignGuide() {
+  const response = await fetch('/ai-design-guide.md')
+  if (!response.ok) {
+    throw new Error('Unable to load AI design guide.')
+  }
+
+  return response.text()
+}
 
 export function TopBar({
   activePageId,
@@ -84,11 +92,11 @@ export function TopBar({
 
   const handleCopyAiGuide = async () => {
     setFileOpen(false)
-    await navigator.clipboard?.writeText(aiDesignGuide)
+    await navigator.clipboard?.writeText(await loadAiDesignGuide())
   }
 
   const handleDownloadAiGuide = async () => {
-    await exportDocument('ai-guide', aiDesignGuide)
+    await exportDocument('ai-guide', await loadAiDesignGuide())
     setFileOpen(false)
   }
 

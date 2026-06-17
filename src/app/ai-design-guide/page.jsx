@@ -1,29 +1,26 @@
-import { ArrowLeft, Blocks } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { env } from '../../../shared/config/env'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
-export function AiGuidePage() {
-  const [aiDesignGuide, setAiDesignGuide] = useState('')
+export const metadata = {
+  title: 'AI Design Guide - Builder Thinking',
+  description: 'Public Builder Thinking guide for AI agents generating importable design JSON.',
+}
 
-  useEffect(() => {
-    document.title = `AI Design Guide - ${env.appName}`
-    fetch('/ai-design-guide.md')
-      .then((response) => response.text())
-      .then(setAiDesignGuide)
-      .catch(() => setAiDesignGuide('Unable to load AI design guide.'))
-  }, [])
+async function readAiGuide() {
+  return readFile(path.join(process.cwd(), 'src/features/editor/ai/AI_DESIGN_GUIDE.md'), 'utf8')
+}
+
+export default async function AiDesignGuidePage() {
+  const aiDesignGuide = await readAiGuide()
 
   return (
     <main className="ai-guide-page">
       <nav className="ai-guide-nav" aria-label="AI guide navigation">
         <a className="landing-brand" href="/">
-          <span className="landing-brand-mark">
-            <Blocks size={18} />
-          </span>
+          <span className="landing-brand-mark">BT</span>
           <span>Builder Thinking</span>
         </a>
         <a className="ai-guide-back" href="/">
-          <ArrowLeft size={16} />
           Back to home
         </a>
       </nav>

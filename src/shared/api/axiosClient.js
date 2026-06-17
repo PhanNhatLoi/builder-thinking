@@ -45,7 +45,7 @@ async function refreshTokens() {
 
 function redirectToLogin() {
   clearAuthCookies()
-  window.location.hash = 'login'
+  window.location.href = '/login'
 }
 
 export async function apiFetch(path, options = {}) {
