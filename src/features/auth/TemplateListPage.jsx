@@ -65,11 +65,11 @@ export function TemplateListPage() {
 
   const logout = () => {
     clearAuthCookies()
-    window.location.hash = 'login'
+    window.location.href = '/login'
   }
 
   const openProject = (publicId) => {
-    window.location.hash = `project/${encodeURIComponent(publicId)}`
+    window.location.href = `/project/${encodeURIComponent(publicId)}`
   }
 
   const closePreview = () => {
@@ -157,17 +157,17 @@ export function TemplateListPage() {
   return (
     <main className="project-list-page">
       <aside className="project-list-sidebar" aria-label="Workspace navigation">
-        <a className="project-list-brand" href="#home">
+        <a className="project-list-brand" href="/">
           <span className="project-list-brand-mark">B</span>
           <span>Builder Thinking</span>
         </a>
 
         <nav className="project-list-nav" aria-label="Primary navigation">
-          <a href="#getlist">
+          <a href="/getlist">
             <LayoutDashboard size={18} />
             My pages
           </a>
-          <a className="active" href="#templates">
+          <a className="active" href="/templates">
             <GalleryVerticalEnd size={18} />
             Templates
           </a>

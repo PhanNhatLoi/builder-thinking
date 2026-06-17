@@ -45,11 +45,11 @@ export function GetListPage() {
 
   const logout = () => {
     clearAuthCookies()
-    window.location.hash = 'login'
+    window.location.href = '/login'
   }
 
   const openProject = (publicId) => {
-    window.location.hash = `project/${encodeURIComponent(publicId)}`
+    window.location.href = `/project/${encodeURIComponent(publicId)}`
   }
 
   const createNewProject = async () => {
@@ -123,17 +123,17 @@ export function GetListPage() {
   return (
     <main className="project-list-page">
       <aside className="project-list-sidebar" aria-label="Workspace navigation">
-        <a className="project-list-brand" href="#home">
+        <a className="project-list-brand" href="/">
           <span className="project-list-brand-mark">B</span>
           <span>Builder Thinking</span>
         </a>
 
         <nav className="project-list-nav" aria-label="Primary navigation">
-          <a className="active" href="#getlist">
+          <a className="active" href="/getlist">
             <LayoutDashboard size={18} />
             My pages
           </a>
-          <a href="#templates">
+          <a href="/templates">
             <GalleryVerticalEnd size={18} />
             Templates
           </a>

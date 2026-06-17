@@ -53,7 +53,7 @@ Before submitting a PR:
 
 - `npm run build` passes.
 - The main route loads.
-- The `#editor` route loads.
+- The `/editor` route loads.
 - Desktop layout is not broken.
 - Mobile/tablet drawer sidebars still work.
 - Import/export changes have been tested manually.
