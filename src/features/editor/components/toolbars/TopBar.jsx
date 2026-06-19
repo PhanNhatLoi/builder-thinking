@@ -1,5 +1,5 @@
 import { useEditor } from '@craftjs/core'
-import { Braces, CheckCircle2, ChevronDown, ChevronRight, Clipboard, Clock3, Download, FileArchive, FileImage, FileText, FolderOpen, Redo2, Save, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { Braces, CheckCircle2, ChevronDown, ChevronRight, Clipboard, Clock3, Download, FileArchive, FileImage, FileJson, FileText, FolderOpen, Redo2, Save, Trash2, Undo2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { exportDocument, parseProjectFile, parseProjectToken } from '../../export/exportDocument'
 import { IconButton } from './IconButton'
@@ -33,8 +33,10 @@ export function TopBar({
   const [fileOpen, setFileOpen] = useState(false)
   const [jsonTokenOpen, setJsonTokenOpen] = useState(false)
   const [jsonToken, setJsonToken] = useState('')
+  const [jsonDropActive, setJsonDropActive] = useState(false)
   const [working, setWorking] = useState(null)
   const importInputRef = useRef(null)
+  const jsonFileInputRef = useRef(null)
   const { actions, canUndo, canRedo, selectedIds } = useEditor((state, q) => ({
     canUndo: q.history.canUndo(),
     canRedo: q.history.canRedo(),
@@ -74,12 +76,12 @@ export function TopBar({
     }
   }
 
-  const handleJsonTokenImport = async () => {
-    if (!jsonToken.trim() || working) return
+  const importJsonTokenText = async (tokenText) => {
+    if (!tokenText.trim() || working) return
 
     setWorking('import')
     try {
-      onProjectImport?.(await parseProjectToken(jsonToken))
+      onProjectImport?.(await parseProjectToken(tokenText))
       setJsonToken('')
       setJsonTokenOpen(false)
     } catch (error) {
@@ -88,6 +90,27 @@ export function TopBar({
     } finally {
       setWorking(null)
     }
+  }
+
+  const handleJsonTokenImport = async () => {
+    await importJsonTokenText(jsonToken)
+  }
+
+  const handleJsonTokenFile = async (file) => {
+    if (!file || working) return
+    await importJsonTokenText(await file.text())
+  }
+
+  const handleJsonTokenFilePick = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    await handleJsonTokenFile(file)
+  }
+
+  const handleJsonTokenDrop = async (event) => {
+    event.preventDefault()
+    setJsonDropActive(false)
+    await handleJsonTokenFile(event.dataTransfer.files?.[0])
   }
 
   const handleCopyAiGuide = async () => {
@@ -264,12 +287,44 @@ export function TopBar({
             <div className="token-modal-header">
               <div>
                 <h2>Import JSON Token</h2>
-                <p>Paste a raw project token or a CraftJS serialized page.</p>
+                <p>Paste a raw project token, drop a .json file, or import a CraftJS serialized page.</p>
               </div>
               <button type="button" className="token-close" aria-label="Close JSON token import" onClick={() => setJsonTokenOpen(false)}>
                 x
               </button>
             </div>
+            <input
+              ref={jsonFileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="visually-hidden"
+              onChange={handleJsonTokenFilePick}
+            />
+            <button
+              type="button"
+              className={`token-file-drop ${jsonDropActive ? 'active' : ''}`}
+              disabled={Boolean(working)}
+              onClick={() => jsonFileInputRef.current?.click()}
+              onDragEnter={(event) => {
+                event.preventDefault()
+                setJsonDropActive(true)
+              }}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setJsonDropActive(true)
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault()
+                if (!event.currentTarget.contains(event.relatedTarget)) setJsonDropActive(false)
+              }}
+              onDrop={handleJsonTokenDrop}
+            >
+              <FileJson size={20} />
+              <span>
+                Drop JSON file here
+                <small>or click to choose a project token .json file</small>
+              </span>
+            </button>
             <textarea
               className="token-textarea"
               value={jsonToken}

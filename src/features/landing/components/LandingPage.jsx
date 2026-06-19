@@ -1,4 +1,5 @@
 import { ArrowRight, Blocks, Bot, Download, Layers3, MousePointer2, Palette, PanelLeft, Smartphone, Sparkles, Wand2 } from 'lucide-react'
+import demoGif from '../../../assets/demo.gif'
 import { Editor } from '../../editor'
 
 const featureCards = [
@@ -40,7 +41,6 @@ export function LandingPage({ onStart }) {
           <a href="#demo">Demo</a>
           <a href="#workflow">Workflow</a>
           <a href="/ai-design-guide">AI Guide</a>
-          <a href="/login">Login</a>
           <button type="button" className="landing-nav-cta" onClick={onStart}>
             Start <ArrowRight size={15} />
           </button>
@@ -64,13 +64,8 @@ export function LandingPage({ onStart }) {
           </div>
         </div>
 
-        <div className="landing-hero-media" aria-label="Product preview placeholder">
-          <div className="landing-video-placeholder">
-            <div className="landing-video-play">
-              <Sparkles size={22} />
-            </div>
-            <p>Video placeholder</p>
-          </div>
+        <div className="landing-hero-media" aria-label="Product demo video">
+          <img className="landing-demo-gif" src={demoGif.src} alt="Builder Thinking editor demo" />
         </div>
       </section>
 

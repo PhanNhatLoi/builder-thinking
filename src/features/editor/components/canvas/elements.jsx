@@ -506,8 +506,8 @@ export function ShapeBlock({
     <EditableShell
       className={`shape-shell ${cropEnabled ? 'can-shift-crop-image' : ''} ${cropPreviewActive ? 'is-cropping-image' : ''}`}
       layout={layout}
-      minResizeHeight={isLine ? 1 : 12}
-      minResizeWidth={isLine ? 1 : 12}
+      minResizeHeight={1}
+      minResizeWidth={1}
       x={x}
       y={y}
       width={width}

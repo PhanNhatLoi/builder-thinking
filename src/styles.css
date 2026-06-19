@@ -961,44 +961,23 @@ button:disabled {
 }
 
 .landing-hero-media {
-  min-height: 520px;
+  display: flex;
+  min-height: 0;
   padding: 14px;
   background: linear-gradient(145deg, #ffffff, #dbeafe);
   border: 1px solid #dbe3ee;
   border-radius: 26px;
   box-shadow: 0 30px 80px rgb(15 23 42 / 16%);
+  overflow: hidden;
 }
 
-.landing-video-placeholder {
-  display: grid;
-  height: 100%;
-  min-height: 490px;
-  place-items: center;
-  color: #64748b;
-  background:
-    linear-gradient(#dbe3ee 1px, transparent 1px),
-    linear-gradient(90deg, #dbe3ee 1px, transparent 1px),
-    #f8fafc;
-  background-size: 28px 28px;
-  border: 1px dashed #b6c4d8;
+.landing-demo-gif {
+  display: block;
+  width: 100%;
+  aspect-ratio: 800 / 543;
+  object-fit: cover;
   border-radius: 20px;
-}
-
-.landing-video-placeholder p {
-  margin: -160px 0 0;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.landing-video-play {
-  display: grid;
-  width: 78px;
-  height: 78px;
-  place-items: center;
-  color: #ffffff;
-  background: #0ea5e9;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgb(14 165 233 / 30%);
+  box-shadow: 0 12px 30px rgb(15 23 42 / 12%);
 }
 
 .ai-guide-page {
@@ -2309,9 +2288,53 @@ button.brand-mark:focus {
   font-weight: 900;
 }
 
+.token-file-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  color: #0f172a;
+  text-align: left;
+  background: #f8fafc;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+}
+
+.token-file-drop svg {
+  flex: 0 0 auto;
+  color: #0891b2;
+}
+
+.token-file-drop span {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.token-file-drop small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.token-file-drop:hover,
+.token-file-drop.active {
+  background: #ecfeff;
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgb(8 145 178 / 10%);
+}
+
+.token-file-drop:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
 .token-textarea {
   width: 100%;
-  min-height: 420px;
+  min-height: 320px;
   max-height: min(58vh, 620px);
   padding: 14px;
   color: #0f172a;
@@ -3420,12 +3443,7 @@ button.brand-mark:focus {
   }
 
   .landing-hero-media {
-    min-height: 360px;
     border-radius: 20px;
-  }
-
-  .landing-video-placeholder {
-    min-height: 330px;
   }
 
   .landing-feature-strip {

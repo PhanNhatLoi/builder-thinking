@@ -144,8 +144,8 @@ export function ShapeInspector({ actions, selectedNode }) {
           <NumberControl caption="Y" label="Y" value={props.y ?? 0} min={0} max={3200} disabled={!canUsePosition} onChange={(value) => setProp('y', value)} />
         </div>
         <div className="control-grid two">
-          <NumberControl caption="Width" label="W" value={props.width ?? 180} min={isLine ? 1 : 12} max={1920} onChange={(value) => setProp('width', value)} />
-          <NumberControl caption="Height" label="H" value={props.height ?? 120} min={isLine ? 1 : 12} max={3200} onChange={(value) => setProp('height', value)} />
+          <NumberControl caption="Width" label="W" value={props.width ?? 180} min={1} max={1920} onChange={(value) => setProp('width', value)} />
+          <NumberControl caption="Height" label="H" value={props.height ?? 120} min={1} max={3200} onChange={(value) => setProp('height', value)} />
         </div>
       </InspectorSection>
 

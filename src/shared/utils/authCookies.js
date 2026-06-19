@@ -1,4 +1,4 @@
-const secureCookie = window.location.protocol === "https:" ? "; Secure" : "";
+const secureCookie = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
 const defaultCookieOptions = `Path=/; SameSite=Strict${secureCookie}`;
 
 export function getCookie(name) {

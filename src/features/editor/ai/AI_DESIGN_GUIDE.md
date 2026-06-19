@@ -2,11 +2,77 @@
 
 Use this guide to generate a complete Builder Thinking design token that can be imported by the web editor.
 
+## Intake and confirmation first
+
+Do not generate the design JSON immediately from a short or unclear user request.
+
+Before designing, check whether the user has provided enough content and intent to choose an appropriate layout. If important information is missing, ask concise questions first. Do not output a project token until the user confirms the brief.
+
+Minimum information to confirm:
+
+- Design type: CV, resume, poster, flyer, presentation, social post, portfolio, certificate, menu, invoice, or another format.
+- Target audience and purpose.
+- Page size or platform when relevant, such as A4, square social post, story, slide, or custom dimensions.
+- Required text content, including names, titles, sections, contact details, product details, dates, prices, or calls to action.
+- Visual direction, such as modern, premium, playful, corporate, minimal, editorial, colorful, or monochrome.
+- Brand inputs when available, including logo, colors, fonts, images, and existing style references.
+- Number of pages and what each page should contain.
+
+If the user provides partial content, summarize the inferred brief and ask for confirmation before generating JSON. Example:
+
+```text
+I can build this as a one-page modern CV. I have the name, role, experience, and skills, but I still need contact details, education, and preferred style. Should I use an A4 layout with a left sidebar and clean corporate colors?
+```
+
+Only proceed to the JSON output after the user confirms or explicitly asks you to continue with reasonable assumptions. When assumptions are used, keep them minimal and layout-focused.
+
 ## Required output
 
-Return only a JSON object. Do not wrap it in Markdown.
+After the intake is confirmed, return a complete `.json` file containing only one JSON object. Do not wrap it in Markdown.
 
-The output must be directly copyable into Builder Thinking's `Import -> Import JSON Token` dialog.
+The output must be directly copyable into Builder Thinking's `Import -> Import JSON Token` dialog and also valid when saved as a `.json` file.
+
+If the AI interface supports file creation or downloadable attachments, create a JSON file for the user to download. Use a descriptive kebab-case filename ending in `.json`, such as `coffee-instagram-poster.json` or `modern-cv-token.json`. The file content must be the exact project token JSON object, with no Markdown, comments, or extra wrapper text.
+
+## Editor import contract
+
+Builder Thinking has two import paths:
+
+- `Import project file` loads an encrypted `.btproj` file exported by the editor.
+- `Import JSON Token` loads a plain JSON token pasted by the user or dropped as a `.json` file.
+
+AI should generate the plain `.json` token file format only. Do not try to generate the encrypted `.btproj` wrapper with `type`, `algorithm`, `iv`, and `data`.
+
+The expected AI output is the same project payload shape used by the editor after import normalization:
+
+```json
+{
+  "schema": "builder-thinking.project",
+  "version": 1,
+  "activePageId": "page-1",
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Page 1",
+      "serialized": "{\"ROOT\":{\"type\":{\"resolvedName\":\"CanvasRoot\"},\"isCanvas\":true,\"props\":{},\"displayName\":\"Page\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}"
+    }
+  ]
+}
+```
+
+Field rules:
+
+- `schema` must be `"builder-thinking.project"`.
+- `version` must be `1`.
+- `activePageId` must match one of the page ids in `pages`.
+- `pages` must be a non-empty array.
+- Every page `id` must be stable and unique, such as `page-1`, `page-2`, `page-3`.
+- Every page `name` should be short and human-readable.
+- Every page `serialized` must be a JSON string containing the CraftJS serialized node map for that page.
+- Every serialized node map must contain `ROOT`.
+- `ROOT.type.resolvedName` must be `"CanvasRoot"`.
+- Component node `type.resolvedName` values should use supported editor components such as `Section`, `TextBlock`, `ImageBlock`, `ShapeBlock`, and `SvgIconBlock`.
+- Do not output a raw single-page CraftJS object as the final answer, even though the importer can normalize it. Always output the full project token shape above.
 
 Do not output:
 
@@ -21,7 +87,7 @@ Output valid JSON only.
 
 If the design has multiple pages, put all pages in the same JSON token. Do not output separate files or separate JSON blocks.
 
-The editor accepts this project token shape:
+The editor accepts this canonical project token shape:
 
 ```json
 {

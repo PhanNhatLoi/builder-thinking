@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { hasAccessToken } from '../shared/utils/authCookies'
 
 const LandingPage = dynamic(
   () => import('../features/landing/components/LandingPage').then((module) => module.LandingPage),
@@ -8,5 +9,9 @@ const LandingPage = dynamic(
 )
 
 export function LandingRoute() {
-  return <LandingPage onStart={() => { window.location.href = '/editor' }} />
+  const handleStart = () => {
+    window.location.href = hasAccessToken() ? '/getlist' : '/login'
+  }
+
+  return <LandingPage onStart={handleStart} />
 }
